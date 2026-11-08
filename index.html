@@ -206,7 +206,7 @@
 
 <script>
     let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-    let skills =; 
+    let skills = [1, 1, 1]; 
     let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
     let danger = { type: 'none', active: false };
     let parasite = { active: false };
@@ -223,7 +223,7 @@
         if (local) {
             const data = JSON.parse(local);
             p.score = data.score || 0; p.xp = data.xp || 0; p.lvl = data.lvl || 1; p.points = data.points || 0;
-            skills = data.skills ||;
+            skills = data.skills || [1, 1, 1];
             log('Прогресс успешно загружен из памяти браузера.');
         }
     }
