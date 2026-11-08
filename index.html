@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frog Simulator v1.0</title>
+    <style>
+        :root {
+            --bg-color: #f9f6f0;
+            --card-bg: #ffffff;
+            --text-main: #191919;
+            --text-muted: #6b6a65;
+            --accent-green: #4a7c59;
+            --accent-green-hover: #3b6346;
+            --border-color: #e6e2da;
+            --progress-bg: #ece8e1;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .frog-screen {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .frog-avatar {
+            font-size: 64px;
+            line-height: 1;
+            margin-bottom: 12px;
+            transition: transform 0.1s ease;
+            user-select: none;
+        }
+
+        .frog-avatar.jump {
+            transform: translateY(-20px) scaleY(1.1);
+        }
+
+        .frog-avatar.croak {
+            transform: scale(1.2);
+        }
+
+        .frog-avatar.eat {
+            transform: scale(0.9) translateX(10px);
+        }
+        .frog-status-text {
+            font-size: 15px;
+            color: var(--text-main);
+            font-weight: 500;
+            min-height: 22px;
+        }
+
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--progress-bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-green);
+            width: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background-color: #d97706;
+        }
+
+        .progress-fill.danger {
+            background-color: #dc2626;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-family: var(--font-family);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--bg-color);
+            border-color: var(--text-muted);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.primary {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+        }
+
+        button.primary:hover:not(:disabled) {
+            background-color: var(--accent-green-hover);
+        }
+
+        .log-container {
+            border-top: 1px solid var(--border-color);
+            padding-top: 18px;
+        }
+        .log-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .log-messages {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-height: 80px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-entry {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(249, 246, 240, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay-title {
+            font-size: 20px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1><span>🐸</span> Клод — Болотная Лягушка</h1>
+        <div class="subtitle">Симулятор выживания в эстетике минимализма</div>
+    </header>
+
+    <div class="frog-screen">
+        <div class="frog-avatar" id="frogAvatar">🐸</div>
+        <div class="frog-status-text" id="statusText">Клод греется на кувшинке.</div>
+
+        <div class="overlay" id="gameOverOverlay">
+            <div class="overlay-title" id="gameOverTitle">Клод уснул вечным сном...</div>
+            <button class="primary" onclick="resetGame()">Начать заново</button>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-row">
+            <div class="stat-labels"><span>Сытость</span><span id="hungerVal">100%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="hungerFill"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-labels"><span>Энергия</span><span id="energyVal">100%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="energyFill"></div></div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-labels"><span>Влажность кожи</span><span id="moistureVal">100%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="moistureFill"></div></div>
+        </div>
+    </div>
+
+    <div class="actions-grid">
+        <button id="btnEat" onclick="performAction('eat')">🪰 Поймать муху</button>
+        <button id="btnJump" onclick="performAction('jump')">🪷 Прыгнуть в камыши</button>
+        <button id="btnCroak" onclick="performAction('croak')">🗣️ Квакнутъ</button>
+        <button id="btnSleep" onclick="performAction('sleep')">💤 Поспать в тени</button>
+    </div>
+
+    <div class="log-container">
+        <div class="log-title">Хроника болота</div>
+        <div class="log-messages" id="logMessages">
+            <div class="log-entry">Болото спокойно. Игра началась.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let state = { hunger: 100, energy: 100, moisture: 100, isAlive: true, age: 0 };
+
+    const statusPhrases = {
+        idle: ["Клод созерцает стрекоз.", "Вода сегодня теплая.", "Слышен шум камыша.", "Клод моргает глазами."],
+        eat: ["Ам! Жирная муха поймана на лету.", "Вкусно. Почти французская кухня.", "Комар не успел пискнуть."],
+        jump: ["Хоп! Прыжок на кувшинку прошел успешно.", "Клод размял лапки.", "Успешно увернулся от тени птицы."],
+        croak: ["«Ква-а-а-к!» — эхо разнеслось по болоту.", "Другие лягушки замолчали.", "Клод выразил мнение о погоде."],
+        sleep: ["Сон в прохладной тине восстанавливает силы.", "Клоду снится бесконечный рой мошек."]
+    };
+
+    const gameTick = setInterval(() => {
+        if (!state.isAlive) return;
+        state.hunger = Math.max(0, state.hunger - 3);
+        state.energy = Math.max(0, state.energy - 2);
+        state.moisture = Math.max(0, state.moisture - 4);
+        state.age += 1;
+        if (state.age % 5 === 0 && Math.random() > 0.5) {
+            updateStatusText(getRandomElement(statusPhrases.idle));
+        }
+        updateUI();
+        checkSurvival();
+    }, 2000);
+    function performAction(action) {
+        if (!state.isAlive) return;
+        const avatar = document.getElementById('frogAvatar');
+        
+        if (action === 'eat') {
+            avatar.className = 'frog-avatar eat';
+            state.hunger = Math.min(100, state.hunger + 25);
+            state.energy = Math.max(0, state.energy - 5);
+            addLog("Клод поймал пролетающее насекомое.");
+            updateStatusText(getRandomElement(statusPhrases.eat));
+        } 
+        else if (action === 'jump') {
+            avatar.className = 'frog-avatar jump';
+            state.energy = Math.max(0, state.energy - 15);
+            state.moisture = Math.max(0, state.moisture - 10);
+            state.hunger = Math.max(0, state.hunger - 5);
+            addLog("Прыжок потратил силы, но освежил дух.");
+            updateStatusText(getRandomElement(statusPhrases.jump));
+        } 
+        else if (action === 'croak') {
+            avatar.className = 'frog-avatar croak';
+            state.energy = Math.max(0, state.energy - 8);
+            addLog("Громкое кваканье привлекло внимание.");
+            updateStatusText(getRandomElement(statusPhrases.croak));
+        } 
+        else if (action === 'sleep') {
+            state.energy = Math.min(100, state.energy + 35);
+            state.moisture = Math.min(100, state.moisture + 15);
+            state.hunger = Math.max(0, state.hunger - 10);
+            addLog("Клод ушел в глубокий анабиоз.");
+            updateStatusText(getRandomElement(statusPhrases.sleep));
+        }
+
+        setTimeout(() => { if(state.isAlive) avatar.className = 'frog-avatar'; }, 400);
+        updateUI();
+        checkSurvival();
+    }
+
+    function checkSurvival() {
+        let reason = "";
+        if (state.hunger <= 0) reason = "Клод погиб от голода на пустом болоте.";
+        if (state.energy <= 0) reason = "У Клода закончились силы, и он пошел на дно.";
+        if (state.moisture <= 0) reason = "Солнце высушило нежную кожу Клода.";
+
+        if (reason) {
+            state.isAlive = false;
+            document.getElementById('gameOverTitle').innerText = reason;
+            document.getElementById('gameOverOverlay').classList.add('active');
+            document.getElementById('frogAvatar').innerText = "💀";
+            addLog("Конец игры.");
+            disableButtons(true);
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('hungerVal').innerText = `${state.hunger}%`;
+        document.getElementById('energyVal').innerText = `${state.energy}%`;
+        document.getElementById('moistureVal').innerText = `${state.moisture}%`;
+        updateBar('hungerFill', state.hunger);
+        updateBar('energyFill', state.energy);
+        updateBar('moistureFill', state.moisture);
+    }
+
+    function updateBar(id, value) {
+        const bar = document.getElementById(id);
+        bar.style.width = `${value}%`;
+        bar.classList.remove('warning', 'danger');
+        if (value <= 20) { bar.classList.add('danger'); } 
+        else if (value <= 50) { bar.classList.add('warning'); }
+    }
+
+    function updateStatusText(text) {
+        document.getElementById('statusText').innerText = text;
+    }
+
+    function addLog(message) {
+        const logMessages = document.getElementById('logMessages');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerText = `• ${message}`;
+        logMessages.prepend(entry);
+        if (logMessages.children.length > 10) { logMessages.removeChild(logMessages.lastChild); }
+    }
+
+    function disableButtons(status) {
+        document.getElementById('btnEat').disabled = status;
+        document.getElementById('btnJump').disabled = status;
+        document.getElementById('btnCroak').disabled = status;
+        document.getElementById('btnSleep').disabled = status;
+    }
+
+    function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function resetGame() {
+        state = { hunger: 100, energy: 100, moisture: 100, isAlive: true, age: 0 };
+        document.getElementById('gameOverOverlay').classList.remove('active');
+        document.getElementById('frogAvatar').innerText = "🐸";
+        document.getElementById('frogAvatar').className = 'frog-avatar';
+        document.getElementById('logMessages').innerHTML = '<div class="log-entry">Болото обнулилось.</div>';
+        updateStatusText("Клод готов к новым приключениям.");
+        disableButtons(false);
+        updateUI();
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
