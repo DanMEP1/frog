@@ -151,7 +151,7 @@
 </div>
 <script>
     let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-    let skills =; let inv = ['Пусто', 'Пусто']; let ach = 0; let activeSkin = 'default';
+    let skills = [1, 1, 1]; let inv = ['Пусто', 'Пусто']; let ach = 0; let activeSkin = 'default';
     let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
     let slug = { x: -50, active: false }; let danger = { type: 'none', active: false };
     let parasite = { active: false }; let quest = { type: 'hunt', progress: 0, target: 3, done: false };
@@ -182,7 +182,7 @@
         const local = localStorage.getItem('frogMegaRPG_save');
         if (local) {
             const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
-            skills = d.skills||[1,1,1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            skills = d.skills||[1, 1, 1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
             log('Данные успешно извлечены из памяти браузера.');
         }
     }
