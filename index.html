@@ -3,355 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Artifact - Frog RPG Sandbox</title>
+    <title>Claude Artifact - Frog Mega RPG Sandbox</title>
     <style>
         :root {
-            --bg-canvas: #edf0e6;
-            --bg-night: #121924;
-            --bg-panel: #ffffff;
-            --text-dark: #1a1a18;
-            --text-gray: #6b6a60;
-            --border: #dcd7be;
-            --claude-green: #2d4d38;
-            --claude-green-light: #e6eee7;
-            --accent-orange: #c45329;
-            --accent-blue: #3b6ba3;
-            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --bg-canvas: #edf0e6; --bg-night: #121924; --bg-storm: #2b2e36; --bg-panel: #ffffff;
+            --text-dark: #1a1a18; --text-gray: #6b6a60; --border: #dcd7be;
+            --claude-green: #2d4d38; --claude-green-light: #e6eee7; --accent-orange: #c45329;
+            --accent-blue: #3b6ba3; --accent-gold: #d4af37; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background-color: #f7f6f0;
-            color: var(--text-dark);
-            font-family: var(--font);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            padding: 12px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 620px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .canvas-container {
-            width: 100%;
-            height: 250px;
-            background-color: var(--bg-canvas);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            position: relative;
-            overflow: hidden;
-            cursor: crosshair;
-            transition: background-color 1.5s ease;
-        }
-
+        body { background-color: #f7f6f0; color: var(--text-dark); font-family: var(--font); display: flex; justify-content: center; align-items: center; height: 100vh; padding: 8px; }
+        .container { width: 100%; max-width: 640px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 30px rgba(0,0,0,0.02); }
+        .canvas-container { width: 100%; height: 260px; background-color: var(--bg-canvas); border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; cursor: crosshair; transition: background-color 1.5s; }
         .canvas-container.night { background-color: var(--bg-night); }
+        .canvas-container.storm { background-color: var(--bg-storm); animation: flash 4s infinite; }
+        .canvas-container.shake { animation: shakeEff 0.4s ease-in-out; }
         svg { width: 100%; height: 100%; }
-
-        .frog-body { transition: transform 0.2s ease; transform-origin: 300px 190px; }
+        .frog-body { transition: transform 0.2s, fill 0.3s; transform-origin: 300px 200px; }
         .skin { fill: var(--claude-green); transition: fill 0.3s; }
+        .berserk .skin { fill: #9c2a2a !important; }
+        .neon .skin { fill: #00ff66 !important; }
         .belly { fill: #cad9cb; }
-        .tongue { stroke: var(--accent-orange); stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 500; stroke-dashoffset: 500; }
-
-        .jump .frog-body { transform: translateY(-70px) scaleX(0.85); }
-        .eat .tongue { animation: tShoot 0.3s ease-in-out forwards; }
-        .croak .frog-body { transform: scale(1.1); }
-        .sleep .frog-body { transform: scaleY(0.85) translateY(10px); }
-
-        @keyframes tShoot { 0% { stroke-dashoffset: 500; } 45% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 500; } }
-
+        .tongue { stroke: var(--accent-orange); stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 600; stroke-dashoffset: 600; }
+        .berserk .tongue { stroke: var(--accent-gold); stroke-width: 5; }
+        .jump .frog-body { transform: translateY(-80px) scaleX(0.85); }
+        .eat .tongue { animation: tShoot 0.28s ease-in-out forwards; }
+        .croak .frog-body { transform: scale(1.15); }
+        .sleep .frog-body { transform: scaleY(0.8) translateY(15px); }
+        @keyframes tShoot { 0% { stroke-dashoffset: 600; } 45% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 600; } }
+        @keyframes flash { 0%, 95%, 98% { background-color: var(--bg-storm); } 96%, 97% { background-color: #fff; } }
+        @keyframes shakeEff { 0%, 100% { transform: translate(0, 0); } 20%, 60% { transform: translate(-4px, 2px); } 40%, 80% { transform: translate(4px, -2px); } }
         .reed { stroke: #a39c81; stroke-width: 2; fill: none; transform-origin: bottom; animation: sway 4s infinite alternate ease-in-out; }
         @keyframes sway { 0% { transform: rotate(-2deg); } 100% { transform: rotate(3deg); } }
-
-        .heron-shadow, .pike-shadow { fill: #000000; opacity: 0; pointer-events: none; }
-        .heron-shadow.active { opacity: 0.15; animation: hMove 3s linear forwards; }
-        .pike-shadow.active { opacity: 0.25; animation: pMove 2.5s linear forwards; }
-
+        .heron-shadow { fill: #000000; opacity: 0; pointer-events: none; transform: translate(-100px, -40px); }
+        .heron-shadow.active { opacity: 0.15; animation: hMove 2.5s linear forwards; }
         @keyframes hMove { 0% { transform: translate(-100px, -40px) scale(0.8); } 100% { transform: translate(700px, 60px) scale(1.2); } }
+        .pike-shadow { fill: #000000; opacity: 0; pointer-events: none; transform: translate(150px, 300px); }
+        .pike-shadow.active { opacity: 0.25; animation: pMove 2.5s linear forwards; }
         @keyframes pMove { 0% { transform: translate(150px, 300px); } 50% { transform: translate(300px, 170px); } 100% { transform: translate(450px, 300px); } }
-
-        .top-bar { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-gray); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .monster-tentacle { fill: none; stroke: #4a154b; stroke-width: 12; stroke-linecap: round; opacity: 0; transform-origin: bottom; }
+        .monster-tentacle.active { opacity: 0.8; animation: tAttack 2.5s ease-in-out forwards; }
+        @keyframes tAttack { 0% { d: path("M 100,260 Q 120,200 100,180"); } 50% { d: path("M 150,260 Q 250,120 300,180"); } 100% { d: path("M 200,260 Q 220,240 210,260"); } }
+        .ripple { fill: none; stroke: #fff; stroke-width: 1.5; opacity: 0; transform-origin: center; }
+        .ripple.active { animation: ripAnim 0.6s ease-out forwards; }
+        @keyframes ripAnim { 0% { r: 5; opacity: 0.6; } 100% { r: 40; opacity: 0; } }
+        .drawing-overlay { position: absolute; top: 10px; left: 10px; width: 140px; height: 140px; background: rgba(255, 255, 255, 0.9); border: 2px dashed var(--accent-orange); border-radius: 8px; display: none; z-index: 5; }
+        .drawing-overlay.active { display: block; }
+        .drawing-canvas { width: 100%; height: 100%; }
+        .top-bar { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-gray); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
         .stat-val { color: var(--text-dark); font-weight: 600; }
-        .rpg-panel {
-            background: #faf9f3;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-        }
-
-        .upgrade-btns { display: flex; gap: 6px; }
-        .up-btn { background: #ffffff; padding: 3px 8px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+        .rpg-panel { background: #faf9f3; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        .upgrade-btns { display: flex; gap: 4px; }
+        .up-btn { background: #ffffff; padding: 2px 6px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
         .up-btn:hover:not(:disabled) { background: var(--claude-green-light); color: var(--claude-green); }
-
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .inventory-panel { display: flex; gap: 6px; background: #fdfdfb; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 11px; align-items: center; }
+        .inv-slot { background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; cursor: pointer; }
+        .inv-slot:hover { background: #f5f2e9; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .metric-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
         .progress-bar-bg { height: 5px; background: #e6e3d5; border-radius: 2px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: var(--claude-green); width: 100%; }
         .progress-bar-fill.warn { background: #ba8132; }
         .progress-bar-fill.crit { background: var(--accent-orange); }
-
-        .control-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-        button.action {
-            background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dark);
-            padding: 8px; font-size: 12px; font-weight: 500; border-radius: 6px; cursor: pointer; font-family: var(--font);
-        }
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+        button.action { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dark); padding: 6px; font-size: 11px; font-weight: 500; border-radius: 6px; cursor: pointer; font-family: var(--font); }
         button.action:hover:not(:disabled) { background: var(--claude-green-light); color: var(--claude-green); }
         button.action:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--text-gray); height: 48px; overflow-y: auto; line-height: 1.4; }
-        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(244, 241, 234, 0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10; }
+        .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--text-gray); height: 44px; overflow-y: auto; line-height: 1.3; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(244, 241, 234, 0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10; }
         .overlay.active { opacity: 1; pointer-events: auto; }
-        .overlay-title { font-size: 14px; font-weight: 600; text-align: center; }
+        .overlay-title { font-size: 13px; font-weight: 600; text-align: center; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="top-bar">
-        <div>Уровень: <span class="stat-val" id="lvl">1</span> (<span id="xp">0</span>/100 XP)</div>
-        <div>Добыча: <span class="stat-val" id="score">0</span></div>
-        <div>Время: <span class="stat-val" id="envTime">День</span></div>
-        <div>Очки: <span class="stat-val" id="statPoints">0</span></div>
+        <div>Lvl: <span class="stat-val" id="lvl">1</span> (<span id="xp">0</span>/100) <span id="combo" style="color:var(--accent-orange)"></span></div>
+        <div>Счет: <span class="stat-val" id="score">0</span></div>
+        <div>Мир: <span class="stat-val" id="envTime">День</span></div>
+        <div>Квест: <span class="stat-val" id="qText" style="color:var(--accent-blue)">Загрузка...</span></div>
     </div>
-
     <div class="rpg-panel">
-        <div>Прокачка навыков:</div>
+        <div>Очки: <span id="statPoints">0</span></div>
         <div class="upgrade-btns">
-            <button class="up-btn" id="up1" onclick="upgrade(1)">👅 Язык (<span id="skill1">1</span>)</button>
-            <button class="up-btn" id="up2" onclick="upgrade(2)">🛡️ Кожа (<span id="skill2">1</span>)</button>
-            <button class="up-btn" id="up3" onclick="upgrade(3)">🦘 Прыжок (<span id="skill3">1</span>)</button>
+            <button class="up-btn" onclick="upgrade(1)">👅 Язык (<span id="skill1">1</span>)</button>
+            <button class="up-btn" onclick="upgrade(2)">🛡️ Кожа (<span id="skill2">1</span>)</button>
+            <button class="up-btn" onclick="upgrade(3)">🦘 Прыжок (<span id="skill3">1</span>)</button>
+            <button class="up-btn" style="background:#f4eee1;" onclick="nextSkin()">🎨 Скин</button>
         </div>
     </div>
-
+    <div class="inventory-panel">
+        <div>Багаж:</div>
+        <div id="slot1" class="inv-slot" onclick="useItem(1)">Пусто</div>
+        <div id="slot2" class="inv-slot" onclick="useItem(2)">Пусто</div>
+        <div style="margin-left:auto; font-size:10px; color:var(--text-gray);" id="achievements">Ачивки: 0</div>
+    </div>
     <div class="canvas-container" id="canvasContainer" onclick="handleCanvasClick(event)">
-        <svg viewBox="0 0 600 250">
-            <path d="M 0,215 Q 300,210 600,215 L 600,250 L 0,250 Z" fill="#dfdacb"/>
-            <path class="reed" d="M 40,220 Q 35,120 50,40" />
-            <path class="reed" d="M 560,220 Q 570,110 555,30" />
-            <ellipse fill="#b0beaa" cx="300" cy="195" rx="90" ry="16" />
-
-            <path class="tongue" id="svgTongue" d="M 300,150 Q 300,150 300,150" />
-
+        <div class="drawing-overlay" id="drawingOverlay">
+            <div style="font-size:9px; text-align:center; color:var(--accent-orange); font-weight:600;">ЧЕРТИ КРУГ ТУТ!</div>
+            <canvas class="drawing-canvas" id="runicCanvas"></canvas>
+        </div>
+        <svg viewBox="0 0 600 260">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dfdacb"/><stop offset="100%" stop-color="#b5ae9a"/></linearGradient></defs>
+            <path d="M 0,225 Q 300,220 600,225 L 600,260 L 0,260 Z" fill="url(#g)"/>
+            <circle id="rip" class="ripple" cx="300" cy="200" r="10" />
+            <path class="reed" d="M 40,230 Q 35,130 50,50" /><path class="reed" d="M 560,230 Q 570,110 555,30" />
+            <ellipse fill="#b0beaa" cx="300" cy="200" rx="90" ry="16" />
+            <path class="tongue" id="svgTongue" d="M 300,160 Q 300,160 300,160" />
             <g id="svgTarget">
-                <circle cx="0" cy="0" r="5" id="targetColor" fill="#222"/>
-                <ellipse cx="-3" cy="-4" rx="2" ry="3" fill="#fff" opacity="0.6"/>
-                <ellipse cx="3" cy="-4" rx="2" ry="3" fill="#fff" opacity="0.6"/>
+                <circle cx="0" cy="0" r="6" id="targetColor" fill="#222"/>
+                <ellipse cx="-3" cy="-4" rx="2" ry="3" fill="#fff" opacity="0.6"/><ellipse cx="3" cy="-4" rx="2" ry="3" fill="#fff" opacity="0.6"/>
             </g>
-
-            <g id="leechBug" fill="#6c2323" opacity="0" transform="translate(290,140)">
-                <circle cx="0" cy="0" r="3"/>
-                <line x1="0" y1="0" x2="-4" y2="4" stroke="#6c2323"/>
-            </g>
-
+            <circle id="slug" cx="-50" cy="220" r="7" fill="#8ca644" opacity="0.8"/>
             <path id="heron" class="heron-shadow" d="M 0,0 Q 80,40 160,20 L 220,90 Z" />
-            <ellipse id="pike" class="pike-shadow" cx="0" cy="0" rx="35" ry="15" />
+            <ellipse id="pike" class="pike-shadow" cx="300" cy="200" rx="35" ry="15" />
+            <path id="tentacle" class="monster-tentacle" d="M 200,260 Q 220,240 210,260" />
+            <g id="leechBug" fill="#6c2323" opacity="0" transform="translate(290,150)"><circle cx="0" cy="0" r="3"/><line x1="0" y1="0" x2="-4" y2="4" stroke="#6c2323"/></g>
             <g class="frog-body" id="svgFrog">
-                <ellipse class="skin" cx="300" cy="175" rx="42" ry="30" />
-                <ellipse class="belly" cx="300" cy="182" rx="30" ry="18" />
-                <ellipse class="skin" cx="300" cy="145" rx="36" ry="24" />
-                <circle class="skin" cx="282" cy="125" r="10" /><circle fill="#fff" cx="282" cy="125" r="7" /><circle id="pupilL" cx="282" cy="125" r="3.5" />
-                <circle class="skin" cx="318" cy="125" r="10" /><circle fill="#fff" cx="318" cy="125" r="7" /><circle id="pupilR" cx="318" cy="125" r="3.5" />
-                <path d="M 288,153 Q 300,158 312,153" stroke="#213326" stroke-width="2" fill="none" />
-                <line x1="280" y1="195" x2="275" y2="210" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
-                <line x1="320" y1="195" x2="325" y2="210" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
+                <ellipse class="skin" cx="300" cy="185" rx="42" ry="30" />
+                <ellipse class="belly" cx="300" cy="192" rx="30" ry="18" />
+                <ellipse class="skin" cx="300" cy="155" rx="36" ry="24" />
+                <circle class="skin" cx="282" cy="135" r="10" /><circle fill="#fff" cx="282" cy="135" r="7" /><circle id="pupilL" cx="282" cy="135" r="3.5" />
+                <circle class="skin" cx="318" cy="135" r="10" /><circle fill="#fff" cx="318" cy="135" r="7" /><circle id="pupilR" cx="318" cy="135" r="3.5" />
+                <path d="M 288,163 Q 300,168 312,163" stroke="#213326" stroke-width="2" fill="none" />
+                <line x1="280" y1="205" x2="275" y2="220" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
+                <line x1="320" y1="205" x2="325" y2="220" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
             </g>
         </svg>
-
         <div class="overlay" id="endOverlay">
             <div class="overlay-title" id="endReason">Игра окончена</div>
             <button onclick="restart()" style="padding:4px 12px; margin-top:4px;">Рестарт</button>
         </div>
     </div>
-
     <div class="dashboard">
-        <div>
-            <div class="metric-row"><span class="metric-label">Энергия</span><span class="metric-value" id="vEnergy">100%</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bEnergy"></div></div>
-        </div>
-        <div>
-            <div class="metric-row"><span class="metric-label">Сытость</span><span class="metric-value" id="vHunger">100%</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bHunger"></div></div>
-        </div>
-        <div>
-            <div class="metric-row"><span class="metric-label">Влажность</span><span class="metric-value" id="vMoisture">100%</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bMoisture"></div></div>
-        </div>
+        <div><div class="metric-row"><span class="metric-label">Энергия</span><span class="metric-value" id="vEnergy">100%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" id="bEnergy"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">Сытость</span><span class="metric-value" id="vHunger">100%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" id="bHunger"></div></div></div>
+        <div><div class="metric-row"><span class="metric-label">Влажность</span><span class="metric-value" id="vMoisture">100%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" id="bMoisture"></div></div></div>
     </div>
-
     <div class="control-grid">
         <button id="btnJump" class="action" onclick="act('jump')">🦘 Прыжок</button>
-        <button id="btnCroak" class="action" onclick="act('croak')">🗣️ Кваканье</button>
-        <button id="btnSleep" class="action" onclick="act('sleep')">💤 Сон (Ил)</button>
+        <button id="btnCroak" class="action" onclick="act('croak')">🗣️ Квакать</button>
+        <button id="btnSleep" class="action" onclick="act('sleep')">💤 Рыбалка</button>
+        <button id="btnLoot" class="action" style="border-color:var(--accent-blue);" onclick="act('loot')">🎒 Сбор</button>
     </div>
-
-    <div class="terminal-log" id="termLog">> Модель запущена. Прогресс сохраняется автоматически!</div>
-    <button onclick="clearSave()" style="font-size:10px; background:none; border:none; color:var(--text-gray); cursor:pointer; text-align:left; width:fit-content;">🗑️ Сбросить сохранения</button>
+    <div class="terminal-log" id="termLog">> Глубокая экосистема инициализирована. Кликайте для атаки!</div>
+    <button onclick="clearSave()" style="font-size:10px; background:none; border:none; color:var(--text-gray); cursor:pointer;">🗑️ Сбросить сохранения</button>
 </div>
-
 <script>
     let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-    let skills = [1, 1, 1]; 
+    let skills =; let inv = ['Пусто', 'Пусто']; let ach = 0; let activeSkin = 'default';
     let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
-    let danger = { type: 'none', active: false };
-    let parasite = { active: false };
-    let lock = false;
-    let totalTicks = 0;
+    let slug = { x: -50, active: false }; let danger = { type: 'none', active: false };
+    let parasite = { active: false }; let quest = { type: 'hunt', progress: 0, target: 3, done: false };
+    let lock = false; let ticks = 0; let combo = 0; let berserkTime = 0;
 
-    function saveGame() {
-        const saveData = { score: p.score, xp: p.xp, lvl: p.lvl, points: p.points, skills: skills };
-        localStorage.setItem('frogRPG_save', JSON.stringify(saveData));
+    const canvasEl = document.getElementById('runicCanvas'); const ctx = canvasEl.getContext('2d');
+    let isDrawing = false; let drawnPoints = 0;
+    canvasEl.width = 140; canvasEl.height = 140; ctx.strokeStyle = '#c45329'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    canvasEl.addEventListener('mousedown', () => isDrawing = true);
+    canvasEl.addEventListener('mouseup', () => { isDrawing = false; checkRune(); });
+    canvasEl.addEventListener('mousemove', draw);
+
+    function draw(e) {
+        if (!isDrawing) return; const rect = canvasEl.getBoundingClientRect();
+        const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+        ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y); drawnPoints++;
     }
-
-    function loadGame() {
-        const local = localStorage.getItem('frogRPG_save');
-        if (local) {
-            const data = JSON.parse(local);
-            p.score = data.score || 0; p.xp = data.xp || 0; p.lvl = data.lvl || 1; p.points = data.points || 0;
-            skills = data.skills || [1, 1, 1];
-            log('Прогресс успешно загружен из памяти браузера.');
+    function checkRune() {
+        if (drawnPoints > 12) {
+            danger.active = false; const t = document.getElementById('tentacle'); if(t) t.classList.remove('active');
+            document.getElementById('drawingOverlay').classList.remove('active'); ctx.clearRect(0, 0, 140, 140); drawnPoints = 0;
+            log('✨ Руна нарисована! Щит заблокировал атаку Кракен-щупальца босса.');
+            if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); }
         }
     }
-
-    function clearSave() {
-        localStorage.removeItem('frogRPG_save');
-        log('Сохранения очищены.');
-        restart();
+    function saveGame() { localStorage.setItem('frogMegaRPG_save', JSON.stringify({ score: p.score, xp: p.xp, lvl: p.lvl, points: p.points, skills: skills, inv: inv, ach: ach, activeSkin: activeSkin, quest: quest })); }
+    function loadGame() {
+        const local = localStorage.getItem('frogMegaRPG_save');
+        if (local) {
+            const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
+            skills = d.skills||[1,1,1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            log('Данные успешно извлечены из памяти браузера.');
+        }
     }
-
-    function trackEyes() {
-        if (!p.alive) return;
-        const dx = target.x > 300 ? 1.5 : -1.5;
-        const dy = target.y > 140 ? 1.5 : -1.5;
-        document.getElementById('pupilL').style.transform = `translate(${dx}px, ${dy}px)`;
-        document.getElementById('pupilR').style.transform = `translate(${dx}px, ${dy}px)`;
+    function nextSkin() {
+        const skins = ['default', 'berserk', 'neon']; let idx = skins.indexOf(activeSkin);
+        activeSkin = skins[(idx + 1) % skins.length];
+        document.getElementById('canvasContainer').className = 'canvas-container ' + activeSkin;
+        document.getElementById('svgFrog').className.baseValue = 'frog-body ' + activeSkin;
+        saveGame();
     }
-    setInterval(() => {
-        if (!p.alive || lock) return;
-        let speedMod = target.type === 'mosquito' ? 1.7 : (target.type === 'dragonfly' ? 2.2 : 1.0);
-        target.x += target.vx * speedMod; target.y += target.vy * speedMod + Math.sin(totalTicks) * 1.5;
-        if (target.x < 40 || target.x > 560) target.vx *= -1;
-        if (target.y < 25 || target.y > 135) target.vy *= -1;
-        document.getElementById('svgTarget').setAttribute('transform', `translate(${target.x}, ${target.y})`);
-        trackEyes();
-    }, 30);
-
     function handleCanvasClick(e) {
-        if (!p.alive || lock) return; lock = true;
+        if (!p.alive || lock || document.getElementById('drawingOverlay').classList.contains('active')) return; lock = true;
         const canvas = document.getElementById('canvasContainer'); const r = canvas.getBoundingClientRect();
-        const cx = ((e.clientX - r.left) / r.width) * 600; const cy = ((e.clientY - r.top) / r.height) * 250;
-        canvas.classList.add('eat');
-        document.getElementById('svgTongue').setAttribute('d', `M 300,150 Q ${150 + cx/2},${75 + cy/2} ${cx},${cy}`);
+        const cx = ((e.clientX - r.left) / r.width) * 600; const cy = ((e.clientY - r.top) / r.height) * 260;
+        canvas.classList.add('eat'); triggerRipple(300, 200);
+        document.getElementById('svgTongue').setAttribute('d', `M 300,160 Q ${150 + cx/2},${80 + cy/2} ${cx},${cy}`);
         p.energy = Math.max(0, p.energy - 5);
-
-        const hitRadius = 16 + (skills[0] * 6);
-        const hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
-
-        if (hit < hitRadius) {
-            let gainXp = target.type === 'mosquito' ? 35 : (target.type === 'dragonfly' ? 60 : 20);
-            let gainHunger = target.type === 'mosquito' ? 10 : (target.type === 'dragonfly' ? 40 : 25);
-            p.score++; p.hunger = Math.min(100, p.hunger + gainHunger);
-            if(target.type === 'dragonfly') p.moisture = 100;
-            p.xp += gainXp;
-            log(`Добыча захвачена! Получено +${gainXp} XP.`);
-            document.getElementById('score').innerText = p.score;
-            document.getElementById('svgTarget').style.opacity = '0';
-            checkLvl(); saveGame();
-            setTimeout(() => { spawnTarget(); }, 400);
-        } else { log('Промах по вектору цели.'); }
-
-        setTimeout(() => {
-            canvas.classList.remove('eat');
-            document.getElementById('svgTongue').setAttribute('d', 'M 300,150 Q 300,150 300,150');
-            lock = false; update();
-        }, 300);
+        
+        let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0);
+        let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
+        if (hit < hitRad) {
+            combo++; let isCrit = Math.random() > 0.85;
+            let gainXp = (target.type==='mosquito'?35:(target.type==='dragonfly'?60:(target.type==='fire'?80:20))) * (isCrit?2:1) * (1 + combo*0.1);
+            p.score++; p.hunger = Math.min(100, p.hunger + (target.type==='dragonfly'?40:25));
+            if(target.type==='fire') { berserkTime = 5; log('🔥 АКТИВИРОВАН РЕЖИМ БЕРСЕРКА!'); }
+            p.xp += Math.floor(gainXp); document.getElementById('score').innerText = p.score;
+            document.getElementById('combo').innerText = `🔥 x${combo}`;
+            log((isCrit?'🎯 КРИТ! ':'') + `Добыча съедена. Получено +${Math.floor(gainXp)} XP.`);
+            if(!quest.done && quest.type==='hunt') { quest.progress++; checkQuest(); }
+            if(p.score>=10 && ach<1) { ach++; log('🏆 ДОСТИЖЕНИЕ: Опытный охотник!'); }
+            document.getElementById('svgTarget').style.opacity = '0'; checkLvl(); saveGame();
+            setTimeout(spawnTarget, 400);
+        } else { combo = 0; document.getElementById('combo').innerText = ''; log('Промах языка по координатам.'); }
+        setTimeout(() => { canvas.classList.remove('eat'); document.getElementById('svgTongue').setAttribute('d', 'M 300,160 Q 300,160 300,160'); lock = false; update(); }, 300);
     }
-
+    function triggerRipple(x, y) { const r = document.getElementById('rip'); r.setAttribute('cx', x); r.setAttribute('cy', y); r.classList.add('active'); setTimeout(() => r.classList.remove('active'), 600); }
     function spawnTarget() {
-        const rand = Math.random();
-        if (rand > 0.85) { target.type = 'dragonfly'; document.getElementById('targetColor').setAttribute('fill', '#d4af37'); }
-        else if (rand > 0.5) { target.type = 'mosquito'; document.getElementById('targetColor').setAttribute('fill', '#9c3a3a'); }
+        let r = Math.random();
+        if (r > 0.9) { target.type = 'fire'; document.getElementById('targetColor').setAttribute('fill', '#ff4500'); }
+        else if (r > 0.75) { target.type = 'dragonfly'; document.getElementById('targetColor').setAttribute('fill', '#d4af37'); }
+        else if (r > 0.45) { target.type = 'mosquito'; document.getElementById('targetColor').setAttribute('fill', '#9c3a3a'); }
         else { target.type = 'fly'; document.getElementById('targetColor').setAttribute('fill', '#222222'); }
-        target.x = Math.random() * 300 + 150; target.y = Math.random() * 60 + 40;
-        document.getElementById('svgTarget').style.opacity = '1';
+        target.x = Math.random()*300+150; target.y = Math.random()*60+40; document.getElementById('svgTarget').style.opacity = '1';
     }
-
-    function act(action) {
-        if (!p.alive) return; const canvas = document.getElementById('canvasContainer');
-        if (action === 'jump') {
-            canvas.classList.add('jump'); p.energy = Math.max(0, p.energy - 10); p.moisture = Math.max(0, p.moisture - 5);
-            if (danger.type === 'heron' && danger.active) { danger.active = false; document.getElementById('heron').classList.remove('active'); log('Успешный прыжок! Вы уклонились от атаки с воздуха.'); }
-            setTimeout(() => canvas.classList.remove('jump'), 300);
-        } else if (action === 'croak') {
-            canvas.classList.add('croak'); p.energy = Math.max(0, p.energy - 4);
-            if (parasite.active) { parasite.active = false; document.getElementById('leechBug').style.opacity = '0'; log('Звуковая волна сбросила паразита со спины.'); }
-            setTimeout(() => canvas.classList.remove('croak'), 300);
-        } else if (action === 'sleep') {
-            canvas.classList.add('sleep'); p.energy = Math.min(100, p.energy + 20); p.moisture = Math.min(100, p.moisture + 10); p.hunger = Math.max(0, p.hunger - 6);
-            if (danger.type === 'pike' && danger.active) { danger.active = false; document.getElementById('pike').classList.remove('active'); log('Вы затаились в иле. Щука проплыла мимо.'); }
-            setTimeout(() => canvas.classList.remove('sleep'), 300);
+    function act(a) {
+        if (!p.alive) return; const c = document.getElementById('canvasContainer');
+        if (a === 'jump') {
+            c.classList.add('jump'); p.energy = Math.max(0, p.energy - 10); p.moisture = Math.max(0, p.moisture - 5);
+            if (danger.active && danger.type==='heron') { danger.active = false; document.getElementById('heron').classList.remove('active'); log('Успешный прыжок из зоны поражения цапли!'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
+            setTimeout(() => c.classList.remove('jump'), 300);
+        } else if (a === 'croak') {
+            c.classList.add('croak'); p.energy = Math.max(0, p.energy - 4);
+            if (parasite.active) { parasite.active = false; document.getElementById('leechBug').style.opacity = '0'; log('Паразит уничтожен импульсом.'); }
+            setTimeout(() => c.classList.remove('croak'), 300);
+        } else if (a === 'sleep') {
+            c.classList.add('sleep'); p.energy = Math.min(100, p.energy + 20); p.moisture = Math.min(100, p.moisture + 10);
+            if (danger.active && danger.type==='pike') { danger.active = false; document.getElementById('pike').classList.remove('active'); log('Вы спрятались на дне от щуки.'); }
+            if (Math.random()>0.8) { let item = Math.random()>0.5?'Целебная Тина':'Клевер'; if(inv[0]==='Пусто') inv[0]=item; else if(inv[1]==='Пусто') inv[1]=item; log(`🎣 На дне поймана вещь: ${item}!`); renderInv(); }
+            setTimeout(() => c.classList.remove('sleep'), 300);
+        } else if (a === 'loot') {
+            if (slug.active && Math.abs(300 - slug.x) < 60) { slug.active = false; document.getElementById('slug').setAttribute('cx', -50); p.xp += 40; log('🎒 Ядовитый слизень собран! Получено +40 XP.'); checkLvl(); } else { log('Рядом нет объектов для сбора.'); }
         }
         update();
     }
-
-    function checkLvl() {
-        if (p.xp >= 100) { p.lvl++; p.xp -= 100; p.points++; log(`✨ УРОВЕНЬ ПОВЫШЕН! Получено 1 очко навыков.`); document.getElementById('lvl').innerText = p.lvl; }
-        document.getElementById('xp').innerText = p.xp; document.getElementById('statPoints').innerText = p.points;
-    }
-
-    function upgrade(s) {
-        if (p.points > 0) { p.points--; skills[s-1]++; document.getElementById('skill'+s).innerText = skills[s-1]; document.getElementById('statPoints').innerText = p.points; log('Параметр модифицирован.'); saveGame(); }
-    }
+    function checkQuest() { if(quest.done) { document.getElementById('qText').innerText = 'Выполнен! +1 Очко'; } else { document.getElementById('qText').innerText = `${quest.type==='hunt'?'Поймать':'Уклониться'}: ${quest.progress}/${quest.target}`; } }
+    function renderInv() { document.getElementById('slot1').innerText = inv[0]; document.getElementById('slot2').innerText = inv[1]; document.getElementById('achievements').innerText = `Ачивки: ${ach}`; }
+    function useItem(slot) { if(inv[slot-1]==='Целебная Тина') { p.energy = Math.min(100, p.energy+40); inv[slot-1]='Пусто'; log('Использована тина: +40% Энергии.'); } renderInv(); saveGame(); }
+    function checkLvl() { if (p.xp >= 100) { p.lvl++; p.xp -= 100; p.points++; log(`✨ УРОВЕНЬ ${p.lvl}!`); } document.getElementById('lvl').innerText = p.lvl; document.getElementById('xp').innerText = p.xp; document.getElementById('statPoints').innerText = p.points; }
+    function upgrade(s) { if (p.points > 0) { p.points--; skills[s-1]++; document.getElementById('skill'+s).innerText = skills[s-1]; log('Навык улучшен.'); saveGame(); } }
+    
+    setInterval(() => {
+        if (!p.alive || lock) return; let speedMod = target.type === 'mosquito' ? 1.7 : (target.type === 'dragonfly' ? 2.2 : 1.0);
+        if (berserkTime > 0) speedMod *= 0.4;
+        target.x += target.vx * speedMod; target.y += target.vy * speedMod + Math.sin(ticks) * 1.5;
+        if (target.x < 40 || target.x > 550) target.vx *= -1; if (target.y < 25 || target.y > 135) target.vy *= -1;
+        document.getElementById('svgTarget').setAttribute('transform', `translate(${target.x}, ${target.y})`);
+        const dx = target.x > 300 ? 1.5 : -1.5; const dy = target.y > 140 ? 1.5 : -1.5;
+        document.getElementById('pupilL').style.transform = `translate(${dx}px, ${dy}px)`; document.getElementById('pupilR').style.transform = `translate(${dx}px, ${dy}px)`;
+    }, 30);
 
     setInterval(() => {
-        if (!p.alive) return; totalTicks++;
+        if (!p.alive) return; ticks++; if(berserkTime>0) berserkTime--;
         p.hunger = Math.max(0, p.hunger - 3); p.energy = Math.max(0, p.energy - 2); p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills[1])));
-        if (totalTicks % 15 === 0) { document.getElementById('envTime').innerText = totalTicks % 30 === 0 ? 'День' : 'Ночь'; document.getElementById('canvasContainer').classList.toggle('night'); }
-        if (parasite.active) { p.energy = Math.max(0, p.energy - 4); log('Паразит истощает запасы энергии!'); }
-        if (!parasite.active && Math.random() > 0.88) { parasite.active = true; document.getElementById('leechBug').style.opacity = '1'; log('🪱 На спину сел паразит! Используйте КВАКАНЬЕ!'); }
-        if (!danger.active && Math.random() > 0.75 && p.score > 2) {
-            danger.active = true; danger.type = Math.random() > 0.5 ? 'heron' : 'pike'; document.getElementById(danger.type).classList.add('active');
-            log(danger.type === 'heron' ? '⚠️ ТЕНЬ СВЕРХУ! Атакует Цапля! Нужен ПРЫЖОК!' : '⚠️ ВОЛНЫ СНИЗУ! Рядом Щука! Затаитесь (СНA В ИЛ)!');
-            setTimeout(() => { if (danger.active) { p.alive = false; end(danger.type === 'heron' ? 'Вас поймала цапля.' : 'Щука атаковала из глубины.'); } }, 2200 + (skills[2] * 300));
+        if (ticks % 15 === 0) {
+            let mode = ticks % 45 === 0 ? 'storm' : (ticks % 30 >= 15 ? 'night' : 'day');
+            document.getElementById('envTime').innerText = mode==='storm'?'Гроза':(mode==='night'?'Ночь':'День');
+            document.getElementById('canvasContainer').className = 'canvas-container ' + mode + ' ' + activeSkin;
+            if(mode==='storm') { p.moisture = 100; document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); }
+        }
+        if (Math.random()>0.7 && !slug.active) { slug.active = true; slug.x = 240; document.getElementById('slug').setAttribute('cx', slug.x); }
+        if (!parasite.active && Math.random() > 0.9) { parasite.active = true; document.getElementById('leechBug').style.opacity = '1'; }
+        if (!danger.active && Math.random() > 0.7 && ticks > 3) {
+            danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
+            const el = document.getElementById(danger.type); if(el) el.classList.add('active');
+            if(danger.type=='tentacle') { document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
+            else { log(danger.type==='heron'?'⚠️ ЦАПЛЯ! Жми ПРЫЖОК!':'⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); }
+            setTimeout(() => { if (danger.active) { p.alive = false; end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills[2] * 300));
         }
         update();
     }, 2000);
-
     function update() {
         document.getElementById('vEnergy').innerText = p.energy + '%'; document.getElementById('vHunger').innerText = p.hunger + '%'; document.getElementById('vMoisture').innerText = p.moisture + '%';
         b('bEnergy', p.energy); b('bHunger', p.hunger); b('bMoisture', p.moisture);
-        if (p.energy <= 0) end('Организм истощен.'); if (p.hunger <= 0) end('Агент погиб от голода.'); if (p.moisture <= 0) end('Критическое высыхание.');
+        if (p.energy <= 0 || p.hunger <= 0 || p.moisture <= 0) end('Организм погиб.');
     }
-
-    function b(id, val) { const fill = document.getElementById(id); fill.style.width = val + '%'; fill.className = 'progress-bar-fill'; if (val <= 20) fill.classList.add('crit'); else if (val <= 50) fill.classList.add('warn'); }
+    function b(id, val) { const f = document.getElementById(id); f.style.width = val + '%'; f.className = 'progress-bar-fill'; if (val <= 20) f.classList.add('crit'); else if (val <= 50) f.classList.add('warn'); }
     function log(m) { const l = document.getElementById('termLog'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
-    function end(r) { p.alive = false; document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Уровень: ${p.lvl}`; document.getElementById('endOverlay').classList.add('active'); document.getElementById('svgFrog').style.opacity = '0.2'; }
-    
-    function restart() {
-        p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-        danger.active = false; parasite.active = false; loadGame();
-        document.getElementById('heron').className = 'heron-shadow'; document.getElementById('pike').className = 'pike-shadow'; document.getElementById('leechBug').style.opacity = '0';
-        for(let i=1; i<=3; i++) { document.getElementById('skill'+i).innerText = skills[i-1]; }
-        document.getElementById('score').innerText = p.score; document.getElementById('lvl').innerText = p.lvl;
-        document.getElementById('xp').innerText = p.xp; document.getElementById('statPoints').innerText = p.points;
-        document.getElementById('endOverlay').classList.remove('active'); document.getElementById('svgFrog').style.opacity = '1';
-        spawnTarget(); log('Мир сгенерирован заново. Удачи!'); update();
-    }
+    function end(r) { p.alive = false; document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Lvl: ${p.lvl}`; document.getElementById('endOverlay').classList.add('active'); }
+    function clearSave() { localStorage.removeItem('frogMegaRPG_save'); restart(); }
+    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); update(); }
     restart();
 </script>
 </body>
