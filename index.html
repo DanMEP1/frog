@@ -161,7 +161,6 @@
 
             <path id="heron" class="heron-shadow" d="M 0,0 Q 80,40 160,20 L 220,90 Z" />
             <ellipse id="pike" class="pike-shadow" cx="0" cy="0" rx="35" ry="15" />
-        </svg>
             <g class="frog-body" id="svgFrog">
                 <ellipse class="skin" cx="300" cy="175" rx="42" ry="30" />
                 <ellipse class="belly" cx="300" cy="182" rx="30" ry="18" />
@@ -209,8 +208,8 @@
     let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
     let skills =; 
     let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
-    let danger = { type: 'none', active: false, t: 0 };
-    let parasite = { active: false, timer: 0 };
+    let danger = { type: 'none', active: false };
+    let parasite = { active: false };
     let lock = false;
     let totalTicks = 0;
 
@@ -231,7 +230,7 @@
 
     function clearSave() {
         localStorage.removeItem('frogRPG_save');
-        log('Сохранения очищены. Перезапустите игру для сброса.');
+        log('Сохранения очищены.');
         restart();
     }
 
