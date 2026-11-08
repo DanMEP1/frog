@@ -279,7 +279,40 @@
         if (Math.random()>0.7 && !slug.active) { slug.active = true; slug.x = 240; document.getElementById('slug').setAttribute('cx', slug.x); }
         if (!parasite.active && Math.random() > 0.9) { parasite.active = true; document.getElementById('leechBug').style.opacity = '1'; }
         if (!danger.active && Math.random() > 0.7 && ticks > 3) {
-            danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
+                    if (!danger.active && Math.random() > 0.75 && ticks > 5) {
+            danger.active = true; 
+            let r = Math.random(); 
+            danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
+            const el = document.getElementById(danger.type); 
+            if(el) el.classList.add('active');
+            
+            const alertBox = document.getElementById('attackAlert');
+            if (danger.type === 'tentacle') { 
+                alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; 
+                document.getElementById('drawingOverlay').classList.add('active'); 
+                document.getElementById('canvasContainer').classList.add('shake'); 
+                setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); 
+                log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); 
+            } else if (danger.type === 'heron') { 
+                alertBox.innerText = '⚠️ ЦАПЛЯ! ЖМИ ПРЫЖОК!'; 
+                log('⚠️ ЦАПЛЯ! Жми ПРЫЖОК!'); 
+            } else { 
+                alertBox.innerText = '⚠️ ЩУКА НА ДНЕ! СТОЙ (РЫБАЛКА)!'; 
+                log('⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); 
+            }
+            alertBox.classList.add('active');
+
+            // ИСПРАВЛЕНО: Базовое время увеличено до 4.5 секунд + бонус от навыка "Кожа"
+            let skinLevel = (Array.isArray(skills) && skills[1]) ? skills[1] : 1;
+            setTimeout(() => { 
+                if (danger.active) { 
+                    p.alive = false; 
+                    document.getElementById('attackAlert').classList.remove('active'); 
+                    end(`Вас уничтожил враг: ${danger.type}`); 
+                } 
+            }, 4500 + (skinLevel * 500));
+        }
+ let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
             const el = document.getElementById(danger.type); if(el) el.classList.add('active');
             const alertBox = document.getElementById('attackAlert');
             if (danger.type === 'tentacle') { alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
