@@ -69,13 +69,10 @@
         button.action { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dark); padding: 6px; font-size: 11px; font-weight: 500; border-radius: 6px; cursor: pointer; font-family: var(--font); }
         button.action:hover:not(:disabled) { background: var(--claude-green-light); color: var(--claude-green); }
         button.action:disabled { opacity: 0.3; cursor: not-allowed; }
-        
         .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--text-gray); height: 90px; overflow-y: auto; line-height: 1.4; }
-        
         .attack-alert { position: absolute; top: 15px; right: 15px; padding: 6px 12px; background: rgba(196, 83, 41, 0.95); border: 1px solid var(--accent-orange); color: white; font-size: 11px; font-weight: bold; border-radius: 4px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 8; animation: pulseAlert 1s infinite alternate; }
         .attack-alert.active { opacity: 1; }
         @keyframes pulseAlert { from { transform: scale(1); } to { transform: scale(1.05); } }
-
         .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(244, 241, 234, 0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10; }
         .overlay.active { opacity: 1; pointer-events: auto; }
         .overlay-title { font-size: 13px; font-weight: 600; text-align: center; }
@@ -106,7 +103,6 @@
     </div>
     <div class="canvas-container" id="canvasContainer" onclick="handleCanvasClick(event)">
         <div class="attack-alert" id="attackAlert">⚠️ ВНИМАНИЕ: ОБНАРУЖЕНА УГРОЗА!</div>
-
         <div class="drawing-overlay" id="drawingOverlay">
             <div style="font-size:9px; text-align:center; color:var(--accent-orange); font-weight:600;">ЧЕРТИ КРУГ ТУТ!</div>
             <canvas class="drawing-canvas" id="runicCanvas"></canvas>
@@ -140,7 +136,7 @@
         </svg>
         <div class="overlay" id="endOverlay">
             <div class="overlay-title" id="endReason">Игра окончена</div>
-            <button onclick="restart()" style="padding:4px 12px; margin-top:4px;">Рестарт</button>
+            <button onclick="restart()">Рестарт</button>
         </div>
     </div>
     <div class="dashboard">
@@ -154,7 +150,7 @@
         <button id="btnSleep" class="action" onclick="act('sleep')">💤 Рыбалка</button>
         <button id="btnLoot" class="action" style="border-color:var(--accent-blue);" onclick="act('loot')">🎒 Сбор</button>
     </div>
-    <div class="terminal-log" id="termLog">> Глубокая экосистема инициализирована. Кликайте для атаки!</div>
+    <div class="terminal-log" id="termLog">> Глубокая экосистема инициализирована. Кликайте для охоты!</div>
     <button onclick="clearSave()" style="font-size:10px; background:none; border:none; color:var(--text-gray); cursor:pointer;">🗑️ Сбросить сохранения</button>
 </div>
 <script>
@@ -191,7 +187,7 @@
         const local = localStorage.getItem('frogMegaRPG_save');
         if (local) {
             const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
-            skills = d.skills||[1,1,1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            skills = d.skills||; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
             log('Данные успешно извлечены из памяти браузера.');
         }
     }
@@ -209,8 +205,7 @@
         canvas.classList.add('eat'); triggerRipple(300, 200);
         document.getElementById('svgTongue').setAttribute('d', `M 300,160 Q ${150 + cx/2},${80 + cy/2} ${cx},${cy}`);
         p.energy = Math.max(0, p.energy - 5);
-        
-        let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0);
+        let hitRad = 16 + (skills * 6) + (berserkTime > 0 ? 40 : 0);
         let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
         if (hit < hitRad) {
             combo++; let isCrit = Math.random() > 0.85;
@@ -274,7 +269,7 @@
 
     setInterval(() => {
         if (!p.alive) return; ticks++; if(berserkTime>0) berserkTime--;
-        p.hunger = Math.max(0, p.hunger - 3); p.energy = Math.max(0, p.energy - 2); p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills[1])));
+        p.hunger = Math.max(0, p.hunger - 3); p.energy = Math.max(0, p.energy - 2); p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills)));
         if (ticks % 15 === 0) {
             let mode = ticks % 45 === 0 ? 'storm' : (ticks % 30 >= 15 ? 'night' : 'day');
             document.getElementById('envTime').innerText = mode==='storm'?'Гроза':(mode==='night'?'Ночь':'День');
@@ -293,7 +288,7 @@
             else { alertBox.innerText = '⚠️ ЩУКА НА ДНЕ! СТОЙ (РЫБАЛКА)!'; log('⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); }
             alertBox.classList.add('active');
 
-            setTimeout(() => { if (danger.active) { p.alive = false; document.getElementById('attackAlert').classList.remove('active'); end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills[2] * 300));
+            setTimeout(() => { if (danger.active) { p.alive = false; document.getElementById('attackAlert').classList.remove('active'); end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills * 300));
         }
         update();
     }, 2000);
@@ -306,7 +301,7 @@
     function log(m) { const l = document.getElementById('termLog'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
     function end(r) { p.alive = false; document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Lvl: ${p.lvl}`; document.getElementById('endOverlay').classList.add('active'); }
     function clearSave() { localStorage.removeItem('frogMegaRPG_save'); restart(); }
-    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; document.getElementById('attackAlert').classList.remove('active'); loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); update(); }
+    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; document.getElementById('attackAlert').classList.remove('active'); loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); for (let i = 1; i <= 3; i++) { document.getElementById('skill' + i).innerText = skills[i - 1]; } update(); }
     restart();
 </script>
 </body>
