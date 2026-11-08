@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Artifact - Frog Canvas Simulator</title>
+    <title>Claude Artifact - Frog Sandbox Game</title>
     <style>
         :root {
             --bg-canvas: #f4f1ea;
+            --bg-night: #1a2332;
             --bg-panel: #ffffff;
             --text-dark: #1b1b18;
             --text-gray: #6e6d65;
@@ -40,116 +41,86 @@
             box-shadow: 0 4px 24px rgba(27,27,24,0.03);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
-        }
-
-        h1 { font-size: 18px; font-weight: 500; color: var(--text-dark); }
-        
-        .version { font-size: 11px; color: var(--text-gray); background: var(--bg-canvas); padding: 2px 6px; border-radius: 4px; }
-
-        /* Векторный интерактивный холст в стиле графики Claude */
         .canvas-container {
             width: 100%;
-            height: 240px;
+            height: 260px;
             background-color: var(--bg-canvas);
             border: 1px solid var(--border);
             border-radius: 8px;
             position: relative;
             overflow: hidden;
+            cursor: crosshair;
+            transition: background-color 2s ease;
         }
 
+        .canvas-container.night { background-color: var(--bg-night); }
         svg { width: 100%; height: 100%; }
 
-        /* Математические SVG-анимации состояний лягушки */
-        .frog-body { transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: 300px 170px; }
+        .frog-body { transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: 300px 190px; }
         
-        /* Стилизация внутренних элементов вектора */
         .skin { fill: var(--claude-green); transition: fill 0.3s; }
-        .skin-light { fill: #487557; }
         .belly { fill: #d5e3d7; }
         .eye-white { fill: #ffffff; }
-        .eye-pupil { fill: var(--text-dark); transition: transform 0.2s; }
+        .eye-pupil { fill: var(--text-dark); transition: transform 0.1s; }
         .blush { fill: #e3b1a1; opacity: 0.6; }
-        .tongue { stroke: var(--accent-orange); stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 200; stroke-dashoffset: 200; }
+        .tongue { stroke: var(--accent-orange); stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 400; stroke-dashoffset: 400; }
 
-        /* CSS-Классы триггеров анимаций графики */
-        .jump .frog-body { transform: translateY(-50px) scaleY(1.1) scaleX(0.95); }
-        .eat .tongue { animation: tongueShoot 0.4s ease-in-out forwards; }
-        .croak .frog-body { transform: scale(1.1); }
-        .croak .belly { fill: #ebf5ed; }
+        .jump .frog-body { transform: translateY(-60px) scaleY(1.1) scaleX(0.9); }
+        .eat .tongue { animation: tongueShoot 0.35s ease-in-out forwards; }
+        .croak .frog-body { transform: scale(1.08); }
         .sleep .eye-pupil { transform: scaleY(0.1); transform-origin: center; }
 
         @keyframes tongueShoot {
-            0% { stroke-dashoffset: 200; }
-            50% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: 200; }
+            0% { stroke-dashoffset: 400; }
+            45% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 400; }
         }
 
-        /* Анимированные элементы окружения */
-        .fly { fill: #3a3a37; transition: opacity 0.2s; }
+        .fly { fill: #3a3a37; cursor: pointer; }
+        .night .fly { fill: #d1d6dc; }
         .reed { stroke: #b0aa90; stroke-width: 2; fill: none; transform-origin: bottom; animation: sway 4s ease-in-out infinite alternate; }
         .lilypad { fill: #b8c4b1; }
+        .heron-shadow { fill: #000000; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+        .heron-shadow.active { opacity: 0.15; animation: shadowMove 4s linear forwards; }
 
-        @keyframes sway {
-            0% { transform: rotate(-2deg); }
-            100% { transform: rotate(3deg); }
-        }
-        /* Метрики и Системные Компоненты */
-        .dashboard {
+        @keyframes sway { 0% { transform: rotate(-2deg); } 100% { transform: rotate(3deg); } }
+        @keyframes shadowMove { 0% { transform: translate(-100px, -50px); } 100% { transform: translate(700px, 150px); } }
+        .top-bar {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-gray);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .score-val { color: var(--text-dark); font-weight: 600; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
         }
 
-        .metric-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 13px;
-        }
+        .metric-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+        .metric-label { color: var(--text-gray); }
+        .metric-value { color: var(--text-dark); font-weight: 500; }
 
-        .metric-label { color: var(--text-gray); font-weight: 400; }
-        .metric-value { color: var(--text-dark); font-weight: 500; font-variant-numeric: tabular-nums; }
-
-        .progress-bar-bg {
-            width: 100%;
-            height: 4px;
-            background: #edeae0;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: var(--claude-green);
-            width: 100%;
-            transition: width 0.4s ease, background 0.4s ease;
-        }
-
+        .progress-bar-bg { height: 4px; background: #edeae0; border-radius: 2px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--claude-green); width: 100%; transition: width 0.3s ease; }
         .progress-bar-fill.warning { background: #ba833c; }
         .progress-bar-fill.danger { background: var(--accent-orange); }
 
-        /* Кнопки в духе минимализма Антропик */
-        .control-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
         button {
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-dark);
-            padding: 10px 14px;
+            padding: 10px;
             font-size: 13px;
             font-weight: 500;
             border-radius: 6px;
@@ -158,30 +129,27 @@
             transition: all 0.15s ease;
         }
 
-        button:hover:not(:disabled) {
-            background: var(--claude-green-light);
-            border-color: #bccbbd;
-            color: var(--claude-green);
-        }
-
+        button:hover:not(:disabled) { background: var(--claude-green-light); border-color: #bccbbd; color: var(--claude-green); }
         button:disabled { opacity: 0.35; cursor: not-allowed; }
+        .danger-btn { border-color: #dcb3a4; color: var(--accent-orange); }
+        .danger-btn:hover:not(:disabled) { background: #fdf2ee; color: var(--accent-orange); border-color: var(--accent-orange); }
 
         .terminal-log {
             background: #faf9f5;
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             font-size: 12px;
             color: var(--text-gray);
-            height: 58px;
+            height: 54px;
             overflow-y: auto;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         .overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(244, 241, 234, 0.95);
+            background: rgba(244, 241, 234, 0.96);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -190,233 +158,266 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
+            z-index: 10;
         }
 
         .overlay.active { opacity: 1; pointer-events: auto; }
-        .overlay-title { font-size: 14px; font-weight: 500; color: var(--text-dark); }
+        .overlay-title { font-size: 15px; font-weight: 600; color: var(--text-dark); text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header>
-        <h1>Simulation: Rana Temporaria</h1>
-        <span class="version">Canvas View</span>
-    </header>
+    <div class="top-bar">
+        <div>Добыча: <span class="score-val" id="scoreInsects">0</span></div>
+        <div>Время суток: <span class="score-val" id="timeOfDay">День</span></div>
+        <div>Циклов: <span class="score-val" id="scoreTicks">0</span></div>
+    </div>
 
-    <div class="canvas-container" id="canvasContainer">
-        <!-- SVG Графика — именно так рисует Claude на холсте -->
-        <svg viewBox="0 0 600 240">
-            <!-- Задний план: камыши и вода -->
-            <path d="M 0,210 Q 300,205 600,210 L 600,240 L 0,240 Z" fill="#e8e5da"/>
-            <path class="reed" d="M 80,220 Q 75,120 90,40" />
-            <path class="reed" d="M 95,220 Q 100,140 92,60" />
-            <path class="reed" d="M 520,220 Q 530,110 515,30" />
+    <div class="canvas-container" id="canvasContainer" onclick="handleCanvasClick(event)">
+        <svg viewBox="0 0 600 260">
+            <path d="M 0,225 Q 300,220 600,225 L 600,260 L 0,260 Z" fill="#e8e5da" id="waterPath"/>
+            <path class="reed" d="M 50,230 Q 45,130 60,50" />
+            <path class="reed" d="M 540,230 Q 550,120 535,40" />
 
-            <!-- Кувшинка -->
-            <ellipse class="lilypad" cx="300" cy="190" rx="90" ry="18" />
-            <path d="M 370,183 L 390,190 L 370,197 Z" fill="#f4f1ea" />
+            <ellipse class="lilypad" cx="300" cy="205" rx="90" ry="18" />
+            <path d="M 370,198 L 390,205 L 370,212 Z" fill="#f4f1ea" id="padCut"/>
 
-            <!-- Язык (Скрыт по умолчанию) -->
-            <path class="tongue" id="svgTongue" d="M 300,155 Q 370,110 440,85" />
+            <path class="tongue" id="svgTongue" d="M 300,150 Q 300,150 300,150" />
 
-            <!-- Муха (Векторная цель) -->
-            <g id="svgFly" class="fly" transform="translate(440, 85)">
+            <g id="svgFly" class="fly">
                 <circle cx="0" cy="0" r="4" />
-                <ellipse cx="-3" cy="-4" rx="2" ry="4" fill="#ffffff" opacity="0.7" transform="rotate(-30)" />
-                <ellipse cx="3" cy="-4" rx="2" ry="4" fill="#ffffff" opacity="0.7" transform="rotate(30)" />
+                <ellipse cx="-3" cy="-4" rx="2" ry="4" fill="#ffffff" opacity="0.7" />
+                <ellipse cx="3" cy="-4" rx="2" ry="4" fill="#ffffff" opacity="0.7" />
             </g>
-            <!-- Векторная Лягушка (Математический концепт Клода) -->
+
+            <path id="heron" class="heron-shadow" d="M 0,0 Q 80,40 160,20 L 220,90 Q 140,110 40,80 Z" />
             <g class="frog-body" id="svgFrog">
-                <!-- Задние лапы -->
-                <path d="M 230,180 Q 210,160 225,190" stroke="var(--claude-green)" stroke-width="8" stroke-linecap="round" fill="none"/>
-                <path d="M 370,180 Q 390,160 375,190" stroke="var(--claude-green)" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <path d="M 230,195 Q 210,175 225,205" stroke="var(--claude-green)" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <path d="M 370,195 Q 390,175 375,205" stroke="var(--claude-green)" stroke-width="8" stroke-linecap="round" fill="none"/>
                 
-                <!-- Тело -->
-                <ellipse class="skin" cx="300" cy="165" rx="45" ry="32" />
-                <ellipse class="belly" cx="300" cy="172" rx="32" ry="20" />
+                <ellipse class="skin" cx="300" cy="180" rx="45" ry="32" />
+                <ellipse class="belly" cx="300" cy="187" rx="32" ry="20" />
                 
-                <!-- Голова -->
-                <ellipse class="skin" cx="300" cy="135" rx="38" ry="26" />
+                <ellipse class="skin" cx="300" cy="150" rx="38" ry="26" />
                 
-                <!-- Глаза -->
-                <circle class="skin" cx="280" cy="114" r="11" />
-                <circle class="eye-white" cx="280" cy="114" r="8" />
-                <circle class="eye-pupil" id="pupilL" cx="280" cy="114" r="4" />
+                <circle class="skin" cx="280" cy="129" r="11" />
+                <circle class="eye-white" cx="280" cy="129" r="8" />
+                <circle class="eye-pupil" id="pupilL" cx="280" cy="129" r="4" />
 
-                <circle class="skin" cx="320" cy="114" r="11" />
-                <circle class="eye-white" cx="320" cy="114" r="8" />
-                <circle class="eye-pupil" id="pupilR" cx="320" cy="114" r="4" />
+                <circle class="skin" cx="320" cy="129" r="11" />
+                <circle class="eye-white" cx="320" cy="129" r="8" />
+                <circle class="eye-pupil" id="pupilR" cx="320" cy="129" r="4" />
 
-                <!-- Щечки и рот -->
-                <circle class="blush" cx="274" cy="142" r="5" />
-                <circle class="blush" cx="326" cy="142" r="5" />
-                <path d="M 288,144 Q 300,150 312,144" stroke="#2b4234" stroke-width="2" stroke-linecap="round" fill="none" />
+                <circle class="blush" cx="274" cy="157" r="5" />
+                <circle class="blush" cx="326" cy="157" r="5" />
+                <path d="M 288,159 Q 300,165 312,159" stroke="#2b4234" stroke-width="2" stroke-linecap="round" fill="none" />
                 
-                <!-- Передние лапки -->
-                <line x1="280" y1="185" x2="275" y2="200" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
-                <line x1="320" y1="185" x2="325" y2="200" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
+                <line x1="280" y1="200" x2="275" y2="215" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
+                <line x1="320" y1="200" x2="325" y2="215" stroke="var(--claude-green)" stroke-width="5" stroke-linecap="round"/>
             </g>
         </svg>
 
         <div class="overlay" id="endOverlay">
             <div class="overlay-title" id="endReason">Симуляция завершена</div>
-            <button onclick="restart()">Инициализировать заново</button>
+            <button onclick="restart()" style="margin-top:8px;">Начать заново</button>
         </div>
     </div>
 
     <div class="dashboard">
-        <div class="metric-block">
-            <div class="metric-row">
-                <span class="metric-label">Метаболизм (Энергия)</span>
-                <span class="metric-value" id="valEnergy">100%</span>
-            </div>
+        <div>
+            <div class="metric-row"><span class="metric-label">Энергия</span><span class="metric-value" id="valEnergy">100%</span></div>
             <div class="progress-bar-bg"><div class="progress-bar-fill" id="barEnergy"></div></div>
         </div>
-
-        <div class="metric-block">
-            <div class="metric-row">
-                <span class="metric-label">Биомасса (Сытость)</span>
-                <span class="metric-value" id="valHunger">100%</span>
-            </div>
+        <div>
+            <div class="metric-row"><span class="metric-label">Сытость</span><span class="metric-value" id="valHunger">100%</span></div>
             <div class="progress-bar-bg"><div class="progress-bar-fill" id="barHunger"></div></div>
         </div>
-
-        <div class="metric-block">
-            <div class="metric-row">
-                <span class="metric-label">Гидробаланс (Влажность)</span>
-                <span class="metric-value" id="valMoisture">100%</span>
-            </div>
+        <div>
+            <div class="metric-row"><span class="metric-label">Влажность</span><span class="metric-value" id="valMoisture">100%</span></div>
             <div class="progress-bar-bg"><div class="progress-bar-fill" id="barMoisture"></div></div>
         </div>
     </div>
 
     <div class="control-grid">
-        <button id="btn1" onclick="triggerAction('eat')">Сбор биомассы (Язык)</button>
-        <button id="btn2" onclick="triggerAction('jump')">Смена позиции (Прыжок)</button>
-        <button id="btn3" onclick="triggerAction('croak')">Акустический импульс</button>
-        <button id="btn4" onclick="triggerAction('sleep')">Режим энергосбережения</button>
+        <button id="btnJump" class="danger-btn" onclick="triggerAction('jump')">Уклонение (Прыжок)</button>
+        <button id="btnSleep" onclick="triggerAction('sleep')">Сон (В тину)</button>
     </div>
 
-    <div class="terminal-log" id="termLog">> Инициализация математической модели... Готово.</div>
+    <div class="terminal-log" id="termLog">> Кликните по холсту, чтобы атаковать летящую муху языком!</div>
 </div>
 
 <script>
-    let model = { energy: 100, hunger: 100, moisture: 100, alive: true };
-    let flyState = { x: 440, y: 85 };
+    let game = { energy: 100, hunger: 100, moisture: 100, alive: true, insects: 0, ticks: 0, night: false };
+    let fly = { x: 400, y: 70, vx: 2, vy: 1 };
+    let heron = { active: false, timer: 0 };
+    let lockAttack = false;
 
-    // Естественное поведение глаз (Векторный следящий фокус Клода)
-    document.addEventListener('mousemove', (e) => {
-        if (!model.alive) return;
+    // Векторный следящий фокус глаз за мухой
+    function updateEyes() {
+        if (!game.alive) return;
         const pL = document.getElementById('pupilL');
         const pR = document.getElementById('pupilR');
-        const bounds = document.getElementById('canvasContainer').getBoundingClientRect();
-        const mouseX = e.clientX - (bounds.left + bounds.width / 2);
-        const dx = mouseX > 0 ? 1.5 : -1.5;
-        pL.style.transform = `translateX(${dx}px)`;
-        pR.style.transform = `translateX(${dx}px)`;
-    });
-    function triggerAction(action) {
-        if (!model.alive) return;
-        const canvas = document.getElementById('canvasContainer');
+        const dx = fly.x > 300 ? 2 : -2;
+        const dy = fly.y > 150 ? 1.5 : -1.5;
+        pL.style.transform = `translate(${dx}px, ${dy}px)`;
+        pR.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+
+    // Движение мухи по синусоиде (физика траектории)
+    setInterval(() => {
+        if (!game.alive || lockAttack) return;
+        fly.x += fly.vx;
+        fly.y += fly.vy + Math.sin(game.ticks) * 2;
+        if (fly.x < 50 || fly.x > 550) fly.vx *= -1;
+        if (fly.y < 30 || fly.y > 140) fly.vy *= -1;
+        document.getElementById('svgFly').setAttribute('transform', `translate(${fly.x}, ${fly.y})`);
+        updateEyes();
+    }, 30);
+    function handleCanvasClick(e) {
+        if (!game.alive || lockAttack) return;
+        lockAttack = true;
         
-        if (action === 'eat') {
-            canvas.className = 'canvas-container eat';
-            model.hunger = Math.min(100, model.hunger + 25);
-            model.energy = Math.max(0, model.energy - 8);
-            
-            // Расчет траектории подтягивания мухи к языку
-            const t = document.getElementById('svgTongue');
-            t.setAttribute('d', `M 300,135 Q 370,${flyState.y - 20} ${flyState.x},${flyState.y}`);
-            
-            setTimeout(() => { document.getElementById('svgFly').style.opacity = '0'; }, 150);
-            setTimeout(() => { moveFly(); document.getElementById('svgFly').style.opacity = '1'; }, 800);
-            log('Захвачен объект типа [Insect]. Энергия переработана в биомассу.');
-        } 
-        else if (action === 'jump') {
-            canvas.className = 'canvas-container jump';
-            model.energy = Math.max(0, model.energy - 20);
-            model.moisture = Math.max(0, model.moisture - 15);
-            log('Перемещение выполнено успешно. Зафиксирован расход влаги.');
-        } 
-        else if (action === 'croak') {
-            canvas.className = 'canvas-container croak';
-            model.energy = Math.max(0, model.energy - 5);
-            log('Сгенерирован звуковой сигнал частотой 450Гц.');
-        } 
-        else if (action === 'sleep') {
-            canvas.className = 'canvas-container sleep';
-            model.energy = Math.min(100, model.energy + 30);
-            model.moisture = Math.min(100, model.moisture + 10);
-            model.hunger = Math.max(0, model.hunger - 10);
-            log('Система переведена в состояние сна. Метрики оптимизированы.');
+        const canvas = document.getElementById('canvasContainer');
+        const rect = canvas.getBoundingClientRect();
+        // Перевод координат клика в систему координат SVG (600x260)
+        const clickX = ((e.clientX - rect.left) / rect.width) * 600;
+        const clickY = ((e.clientY - rect.top) / rect.height) * 260;
+
+        canvas.classList.add('eat');
+        const t = document.getElementById('svgTongue');
+        t.setAttribute('d', `M 300,150 Q ${150 + clickX/2},${75 + clickY/2} ${clickX},${clickY}`);
+
+        game.energy = Math.max(0, game.energy - 6);
+
+        // Проверка коллизии языка и мухи (радиус попадания 25px)
+        const dist = Math.sqrt(Math.pow(clickX - fly.x, 2) + Math.pow(clickY - fly.y, 2));
+        if (dist < 25) {
+            game.insects++;
+            game.hunger = Math.min(100, game.hunger + 20);
+            document.getElementById('scoreInsects').innerText = game.insects;
+            document.getElementById('svgFly').style.opacity = '0';
+            log('Цель уничтожена. Добавлено +20% биомассы.');
+            setTimeout(() => { resetFly(); }, 400);
+        } else {
+            log('Промах. Энергия потрачена впустую.');
         }
 
-        setTimeout(() => { if (model.alive) canvas.className = 'canvas-container'; }, 400);
+        setTimeout(() => {
+            canvas.classList.remove('eat');
+            t.setAttribute('d', 'M 300,150 Q 300,150 300,150');
+            lockAttack = false;
+            update();
+        }, 350);
+    }
+
+    function resetFly() {
+        fly.x = Math.random() * 400 + 100;
+        fly.y = Math.random() * 80 + 40;
+        fly.vx = (Math.random() > 0.5 ? 2 : -2);
+        document.getElementById('svgFly').style.opacity = '1';
+    }
+
+    function triggerAction(action) {
+        if (!game.alive) return;
+        const canvas = document.getElementById('canvasContainer');
+        
+        if (action === 'jump') {
+            canvas.classList.add('jump');
+            game.energy = Math.max(0, game.energy - 12);
+            game.moisture = Math.max(0, game.moisture - 8);
+            if (heron.active) {
+                heron.active = false;
+                document.getElementById('heron').classList.remove('active');
+                log('Успешный маневр! Вы увернулись от атаки цапли.');
+            } else {
+                log('Выполнен превентивный прыжок.');
+            }
+            setTimeout(() => canvas.classList.remove('jump'), 400);
+        } else if (action === 'sleep') {
+            canvas.classList.add('sleep');
+            game.energy = Math.min(100, game.energy + 25);
+            game.moisture = Math.min(100, game.moisture + 15);
+            game.hunger = Math.max(0, game.hunger - 10);
+            log('Регенерация в иле. Внимание: вы уязвимы для угроз!');
+            setTimeout(() => canvas.classList.remove('sleep'), 400);
+        }
         update();
     }
 
-    function moveFly() {
-        flyState.x = Math.floor(Math.random() * 120) + 400;
-        flyState.y = Math.floor(Math.random() * 80) + 50;
-        document.getElementById('svgFly').setAttribute('transform', `translate(${flyState.x}, ${flyState.y})`);
-    }
-
-    // Пассивное угасание систем жизнеобеспечения
+    // Игровой тайм-менеджмент и опасности болота
     setInterval(() => {
-        if (!model.alive) return;
-        model.energy = Math.max(0, model.energy - 2);
-        model.hunger = Math.max(0, model.hunger - 3);
-        model.moisture = Math.max(0, model.moisture - 4);
-        
-        if(Math.random() > 0.7) moveFly();
+        if (!game.alive) return;
+        game.ticks++;
+        document.getElementById('scoreTicks').innerText = game.ticks;
+
+        // Смена времени суток
+        if (game.ticks % 15 === 0) {
+            game.night = !game.night;
+            document.getElementById('canvasContainer').classList.toggle('night', game.night);
+            document.getElementById('timeOfDay').innerText = game.night ? 'Ночь' : 'День';
+            log(game.night ? 'Наступили сумерки. Расход влаги снижен.' : 'Взошло солнце. Кожа сохнет быстрее.');
+        }
+
+        // Пассивные дебаффы метрик
+        game.hunger = Math.max(0, game.hunger - 2);
+        game.energy = Math.max(0, game.energy - 2);
+        game.moisture = Math.max(0, game.moisture - (game.night ? 2 : 4));
+
+        // Логика атаки цапли (Рандомное появление раз в 10 циклов)
+        if (!heron.active && Math.random() > 0.75 && game.ticks > 5) {
+            heron.active = true;
+            document.getElementById('heron').classList.add('active');
+            log('⚠️ ТЕНЬ НАД ВОДОЙ! Цапля атакует! Жмите ПРЫЖОК!');
+            heron.timer = setTimeout(() => {
+                if (heron.active) {
+                    game.alive = false;
+                    endGame('Лягушка была поймана цаплей.');
+                }
+            }, 3000);
+        }
         update();
     }, 2000);
 
     function update() {
-        document.getElementById('valEnergy').innerText = model.energy + '%';
-        document.getElementById('valHunger').innerText = model.hunger + '%';
-        document.getElementById('valMoisture').innerText = model.moisture + '%';
+        document.getElementById('valEnergy').innerText = game.energy + '%';
+        document.getElementById('valHunger').innerText = game.hunger + '%';
+        document.getElementById('valMoisture').innerText = game.moisture + '%';
+        renderBar('barEnergy', game.energy);
+        renderBar('barHunger', game.hunger);
+        renderBar('barMoisture', game.moisture);
 
-        renderBar('barEnergy', model.energy);
-        renderBar('barHunger', model.hunger);
-        renderBar('barMoisture', model.moisture);
-
-        if (model.energy <= 0 || model.hunger <= 0 || model.moisture <= 0) {
-            model.alive = false;
-            document.getElementById('endOverlay').classList.add('active');
-            document.getElementById('svgFrog').style.opacity = '0.3';
-            log('Критический системный сбой: Агент деактивирован.');
-            toggleButtons(true);
-        }
+        if (game.energy <= 0) endGame('Агент истощен (0% Энергии).');
+        if (game.hunger <= 0) endGame('Организм погиб от голода.');
+        if (game.moisture <= 0) endGame('Критическое обезвоживание на солнце.');
     }
 
     function renderBar(id, val) {
-        const bar = document.getElementById(id);
-        bar.style.width = val + '%';
-        bar.classList.remove('warning', 'danger');
-        if (val <= 20) bar.classList.add('danger');
-        else if (val <= 50) bar.classList.add('warning');
+        const b = document.getElementById(id); b.style.width = val + '%';
+        b.className = 'progress-bar-fill';
+        if (val <= 20) b.classList.add('danger'); else if (val <= 50) b.classList.add('warning');
     }
 
-    function log(msg) {
-        const l = document.getElementById('termLog');
-        l.innerHTML = `> ${msg}<br>` + l.innerHTML;
-    }
-
-    function toggleButtons(status) {
-        for(let i=1; i<=4; i++) document.getElementById('btn'+i).disabled = status;
+    function log(m) { const l = document.getElementById('termLog'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
+    
+    function endGame(reason) {
+        game.alive = false; clearTimeout(heron.timer);
+        document.getElementById('endReason').innerText = reason + ` Ваш счет: ${game.insects} мух.`;
+        document.getElementById('endOverlay').classList.add('active');
+        document.getElementById('svgFrog').style.opacity = '0.2';
     }
 
     function restart() {
-        model = { energy: 100, hunger: 100, moisture: 100, alive: true };
+        game = { energy: 100, hunger: 100, moisture: 100, alive: true, insects: 0, ticks: 0, night: false };
+        heron.active = false; document.getElementById('heron').classList.remove('active');
+        document.getElementById('canvasContainer').className = 'canvas-container';
+        document.getElementById('scoreInsects').innerText = '0';
+        document.getElementById('scoreTicks').innerText = '0';
+        document.getElementById('timeOfDay').innerText = 'День';
         document.getElementById('endOverlay').classList.remove('active');
         document.getElementById('svgFrog').style.opacity = '1';
-        toggleButtons(false);
-        log('Система перезагружена. Параметры нормализованы.');
-        update();
+        resetFly(); log('Новая симуляция запущена. Кликайте для охоты.'); update();
     }
-
     update();
 </script>
 </body>
