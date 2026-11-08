@@ -207,19 +207,24 @@
         p.energy = Math.max(0, p.energy - 5);
         let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0);
         let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
-        if (hit < hitRad) {
+                if (hit < hitRad) {
             combo++; let isCrit = Math.random() > 0.85;
             let gainXp = (target.type==='mosquito'?35:(target.type==='dragonfly'?60:(target.type==='fire'?80:20))) * (isCrit?2:1) * (1 + combo*0.1);
             p.score++; p.hunger = Math.min(100, p.hunger + (target.type==='dragonfly'?40:25));
+            
+            // НОВАЯ МЕХАНИКА: Успешный клик по мухе восстанавливает +15% Энергии
+            p.energy = Math.min(100, p.energy + 15);
+            
             if(target.type==='fire') { berserkTime = 5; log('🔥 АКТИВИРОВАН РЕЖИМ БЕРСЕРКА!'); }
             p.xp += Math.floor(gainXp); document.getElementById('score').innerText = p.score;
             document.getElementById('combo').innerText = `🔥 x${combo}`;
-            log((isCrit?'🎯 КРИТ! ':'') + `Добыча съедена. Получено +${Math.floor(gainXp)} XP.`);
+            log((isCrit?'🎯 КРИТ! ':'') + `Добыча съедена. Получено +${Math.floor(gainXp)} XP и +15% Энергии.`);
             if(!quest.done && quest.type==='hunt') { quest.progress++; checkQuest(); }
             if(p.score>=10 && ach<1) { ach++; log('🏆 ДОСТИЖЕНИЕ: Опытный охотник!'); }
             document.getElementById('svgTarget').style.opacity = '0'; checkLvl(); saveGame();
             setTimeout(spawnTarget, 400);
-        } else { combo = 0; document.getElementById('combo').innerText = ''; log('Промах языка по координатам.'); }
+        }
+ else { combo = 0; document.getElementById('combo').innerText = ''; log('Промах языка по координатам.'); }
         setTimeout(() => { canvas.classList.remove('eat'); document.getElementById('svgTongue').setAttribute('d', 'M 300,160 Q 300,160 300,160'); lock = false; update(); }, 300);
     }
     function triggerRipple(x, y) { const r = document.getElementById('rip'); r.setAttribute('cx', x); r.setAttribute('cy', y); r.classList.add('active'); setTimeout(() => r.classList.remove('active'), 600); }
@@ -231,26 +236,77 @@
         else { target.type = 'fly'; document.getElementById('targetColor').setAttribute('fill', '#222222'); }
         target.x = Math.random()*300+150; target.y = Math.random()*60+40; document.getElementById('svgTarget').style.opacity = '1';
     }
+        // Система независимых кулдаунов для кнопок
+    let cooldowns = { jump: false, croak: false, sleep: false, loot: false };
+
     function act(a) {
-        if (!p.alive) return; const c = document.getElementById('canvasContainer');
+        if (!p.alive) return;
+        
+        // Проверка: если способность на перезарядке — прерываем выполнение
+        if (cooldowns[a]) {
+            log('⏳ Способность ещё перезаряжается!');
+            return;
+        }
+
+        const c = document.getElementById('canvasContainer');
+        
         if (a === 'jump') {
             c.classList.add('jump'); p.energy = Math.max(0, p.energy - 10); p.moisture = Math.max(0, p.moisture - 5);
             if (danger.active && danger.type==='heron') { danger.active = false; document.getElementById('heron').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Успешный прыжок из зоны поражения цапли!'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
             setTimeout(() => c.classList.remove('jump'), 300);
+            
+            // Активация кулдауна на Прыжок (3 секунды)
+            triggerCooldown('btnJump', 'jump', 3000);
+
         } else if (a === 'croak') {
             c.classList.add('croak'); p.energy = Math.max(0, p.energy - 4);
             if (parasite.active) { parasite.active = false; document.getElementById('leechBug').style.opacity = '0'; log('Паразит уничтожен импульсом.'); }
             setTimeout(() => c.classList.remove('croak'), 300);
+            
+            // Активация кулдауна на Кваканье (2 секунды)
+            triggerCooldown('btnCroak', 'croak', 2000);
+
         } else if (a === 'sleep') {
             c.classList.add('sleep'); p.energy = Math.min(100, p.energy + 20); p.moisture = Math.min(100, p.moisture + 10);
             if (danger.active && danger.type==='pike') { danger.active = false; document.getElementById('pike').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Вы спрятались на дне от щуки.'); }
             if (Math.random()>0.8) { let item = Math.random()>0.5?'Целебная Тина':'Клевер'; if(inv[0]==='Пусто') inv[0]=item; else if(inv[1]==='Пусто') inv[1]=item; log(`🎣 На дне поймана вещь: ${item}!`); renderInv(); }
             setTimeout(() => c.classList.remove('sleep'), 300);
+            
+            // Активация кулдауна на Рыбалку/Сон (4 секунды)
+            triggerCooldown('btnSleep', 'sleep', 4000);
+
         } else if (a === 'loot') {
             if (slug.active && Math.abs(300 - slug.x) < 60) { slug.active = false; document.getElementById('slug').setAttribute('cx', -50); p.xp += 40; log('🎒 Ядовитый слизень собран! Получено +40 XP.'); checkLvl(); } else { log('Рядом нет объектов для сбора.'); }
+            
+            // Активация кулдауна на Сбор (1.5 секунды)
+            triggerCooldown('btnLoot', 'loot', 1500);
         }
         update();
     }
+
+    // Вспомогательная функция визуализации перезарядки
+    function triggerCooldown(btnId, type, ms) {
+        cooldowns[type] = true;
+        const btn = document.getElementById(btnId);
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        
+        let timeLeft = ms / 1000;
+        btn.innerText = `${originalText} (${timeLeft}s)`;
+        
+        let cdInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft > 0) {
+                btn.innerText = `${originalText} (${timeLeft}s)`;
+            } else {
+                clearInterval(cdInterval);
+                cooldowns[type] = false;
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }, 1000);
+    }
+
     function checkQuest() { if(quest.done) { document.getElementById('qText').innerText = 'Выполнен! +1 Очко'; } else { document.getElementById('qText').innerText = `${quest.type==='hunt'?'Поймать':'Уклониться'}: ${quest.progress}/${quest.target}`; } }
     function renderInv() { document.getElementById('slot1').innerText = inv[0]; document.getElementById('slot2').innerText = inv[1]; document.getElementById('achievements').innerText = `Ачивки: ${ach}`; }
     function useItem(slot) { if(inv[slot-1]==='Целебная Тина') { p.energy = Math.min(100, p.energy+40); inv[slot-1]='Пусто'; log('Использована тина: +40% Энергии.'); } renderInv(); saveGame(); }
@@ -385,6 +441,10 @@
     }
     
     restart();
+            cooldowns = { jump: false, croak: false, sleep: false, loot: false };
+        const buttons = ['btnJump', 'btnCroak', 'btnSleep', 'btnLoot'];
+        buttons.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+
 </script>
 </body>
 </html>
