@@ -1,353 +1,225 @@
-let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; 
-let skills =; // Исправлено: добавлены начальные значения для навыков [Язык, Кожа, Прыжок]
-let inv = ['Пусто', 'Пусто']; 
-let ach = 0; 
-let activeSkin = 'default'; 
-let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 }; 
-let slug = { x: -50, active: false }; 
-let danger = { type: 'none', active: false }; 
-let parasite = { active: false }; 
-let quest = { type: 'hunt', progress: 0, target: 3, done: false }; 
-let lock = false; 
-let ticks = 0; 
-let combo = 0; 
-let berserkTime = 0; 
+    let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
+    let skills = [1, 1, 1]; // 0: Язык, 1: Кожа, 2: Прыжок
+    let inv = ['Пусто', 'Пусто'];
+    let ach = 0;
+    let activeSkin = 'default';
+    let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
+    let slug = { x: -50, active: false };
+    let danger = { type: 'none', active: false };
+    let parasite = { active: false };
+    let quest = { type: 'hunt', progress: 0, target: 3, done: false };
+    let lock = false;
+    let ticks = 0;
+    let combo = 0;
+    let berserkTime = 0;
 
-const canvasEl = document.getElementById('runicCanvas'); 
-const ctx = canvasEl.getContext('2d'); 
-let isDrawing = false; 
-let drawnPoints = 0; 
+    const canvasEl = document.getElementById('runicCanvas');
+    const ctx = canvasEl.getContext('2d');
+    let isDrawing = false;
+    let drawnPoints = 0;
 
-canvasEl.width = 140; 
-canvasEl.height = 140; 
-ctx.strokeStyle = '#c45329'; 
-ctx.lineWidth = 4; 
-ctx.lineCap = 'round'; 
+    canvasEl.width = 140;
+    canvasEl.height = 140;
+    ctx.strokeStyle = '#c45329';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
 
-canvasEl.addEventListener('mousedown', () => isDrawing = true); 
-canvasEl.addEventListener('mouseup', () => { isDrawing = false; checkRune(); }); 
-canvasEl.addEventListener('mousemove', draw); 
+    canvasEl.addEventListener('mousedown', () => isDrawing = true);
+    canvasEl.addEventListener('mouseup', () => { isDrawing = false; checkRune(); });
+    canvasEl.addEventListener('mousemove', draw);
 
-function draw(e) { 
-    if (!isDrawing) return; 
-    const rect = canvasEl.getBoundingClientRect(); 
-    const x = e.clientX - rect.left; 
-    const y = e.clientY - rect.top; 
-    ctx.lineTo(x, y); 
-    ctx.stroke(); 
-    ctx.beginPath(); 
-    ctx.moveTo(x, y); 
-    drawnPoints++; 
-} 
-
-function checkRune() { 
-    if (drawnPoints > 12) { 
-        danger.active = false; 
-        const t = document.getElementById('tentacle'); 
-        if(t) t.classList.remove('active'); 
-        document.getElementById('drawingOverlay').classList.remove('active'); 
-        document.getElementById('attackAlert').classList.remove('active'); 
-        ctx.clearRect(0, 0, 140, 140); 
-        drawnPoints = 0; 
-        log('✨ Руна нарисована! Щит заблокировал атаку Кракен-щупальца босса.'); 
-        if(!quest.done && quest.type==='dodge') { 
-            quest.progress++; 
-            checkQuest(); 
-        } 
-    } 
-} 
-
-function saveGame() { 
-    localStorage.setItem('frogMegaRPG_save', JSON.stringify({ 
-        score: p.score, 
-        xp: p.xp, 
-        lvl: p.lvl, 
-        points: p.points, 
-        skills: skills, 
-        inv: inv, 
-        ach: ach, 
-        activeSkin: activeSkin, 
-        quest: quest 
-    })); 
-} 
-
-function loadGame() { 
-    const local = localStorage.getItem('frogMegaRPG_save'); 
-    if (local) { 
-        const d = JSON.parse(local); 
-        p.score = d.score||0; 
-        p.xp = d.xp||0; 
-        p.lvl = d.lvl||1; 
-        p.points = d.points||0; 
-        skills = d.skills ||; // Исправлено: добавлен фоллбек на массив
-        inv = d.inv||['Пусто','Пусто']; 
-        ach = d.ach||0; 
-        activeSkin = d.activeSkin||'default'; 
-        quest = d.quest||quest; 
-        log('Данные успешно извлечены из памяти браузера.'); 
-    } 
-} 
-
-function nextSkin() { 
-    const skins = ['default', 'berserk', 'neon']; 
-    let idx = skins.indexOf(activeSkin); 
-    activeSkin = skins[(idx + 1) % skins.length]; 
-    document.getElementById('canvasContainer').className = 'canvas-container ' + activeSkin; 
-    document.getElementById('svgFrog').className.baseValue = 'frog-body ' + activeSkin; 
-    saveGame(); 
-} 
-
-function handleCanvasClick(e) { 
-    if (!p.alive || lock || document.getElementById('drawingOverlay').classList.contains('active')) return; 
-    lock = true; 
-    const canvas = document.getElementById('canvasContainer'); 
-    const r = canvas.getBoundingClientRect(); 
-    const cx = ((e.clientX - r.left) / r.width) * 600; 
-    const cy = ((e.clientY - r.top) / r.height) * 260; 
-    canvas.classList.add('eat'); 
-    triggerRipple(300, 200); 
-    document.getElementById('svgTongue').setAttribute('d', `M 300,160 Q ${150 + cx/2},${80 + cy/2} ${cx},${cy}`); 
-    p.energy = Math.max(0, p.energy - 5); 
-    let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0); 
-    let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2)); 
-    if (hit < hitRad) { 
-        combo++; 
-        let isCrit = Math.random() > 0.85; 
-        let gainXp = (target.type==='mosquito'?35:(target.type==='dragonfly'?60:(target.type==='fire'?80:20))) * (isCrit?2:1) * (1 + combo*0.1); 
-        p.score++; 
-        p.hunger = Math.min(100, p.hunger + (target.type==='dragonfly'?40:25)); 
-        if(target.type==='fire') { 
-            berserkTime = 5; 
-            log('🔥 АКТИВИРОВАН РЕЖИМ БЕРСЕРКА!'); 
-        } 
-        p.xp += Math.floor(gainXp); 
-        document.getElementById('score').innerText = p.score; 
-        document.getElementById('combo').innerText = `🔥 x${combo}`; 
-        log((isCrit?'🎯 КРИТ! ':'') + `Добыча съедена. Получено +${Math.floor(gainXp)} XP.`); 
-        if(!quest.done && quest.type==='hunt') { 
-            quest.progress++; 
-            checkQuest(); 
-        } 
-        if(p.score>=10 && ach<1) { 
-            ach++; 
-            log('🏆 ДОСТИЖЕНИЕ: Опытный охотник!'); 
-        } 
-        document.getElementById('svgTarget').style.opacity = '0'; 
-        checkLvl(); 
-        saveGame(); 
-        setTimeout(spawnTarget, 400); 
-    } else { 
-        combo = 0; 
-        document.getElementById('combo').innerText = ''; 
-        log('Промах языка по координатам.'); 
-    } 
-    setTimeout(() => { 
-        canvas.classList.remove('eat'); 
-        document.getElementById('svgTongue').setAttribute('d', 'M 300,160 Q 300,160 300,160'); 
-        lock = false; 
-        update(); 
-    }, 300); 
-} 
-
-function triggerRipple(x, y) { 
-    const r = document.getElementById('rip'); 
-    r.setAttribute('cx', x); 
-    r.setAttribute('cy', y); 
-    r.classList.add('active'); 
-    setTimeout(() => r.classList.remove('active'), 600); 
-} 
-
-function spawnTarget() { 
-    let r = Math.random(); 
-    if (r > 0.9) { 
-        target.type = 'fire'; 
-        document.getElementById('targetColor').setAttribute('fill', '#ff4500'); 
-    } else if (r > 0.75) { 
-        target.type = 'dragonfly'; 
-        document.getElementById('targetColor').setAttribute('fill', '#d4af37'); 
-    } else if (r > 0.45) { 
-        target.type = 'mosquito'; 
-        document.getElementById('targetColor').setAttribute('fill', '#9c3a3a'); 
-    } else { 
-        target.type = 'fly'; 
-        document.getElementById('targetColor').setAttribute('fill', '#222222'); 
-    } 
-    target.x = Math.random()*300+150; 
-    target.y = Math.random()*60+40; 
-    document.getElementById('svgTarget').style.opacity = '1'; 
-} 
-
-function act(a) { 
-    if (!p.alive) return; 
-    const c = document.getElementById('canvasContainer'); 
-    if (a === 'jump') { 
-        c.classList.add('jump'); 
-        p.energy = Math.max(0, p.energy - 10); 
-        p.moisture = Math.max(0, p.moisture - 5); 
-        if (danger.active && danger.type==='heron') { 
-            danger.active = false; 
-            document.getElementById('heron').classList.remove('active'); 
-            document.getElementById('attackAlert').classList.remove('active'); 
-            log('Успешный прыжок из зоны поражения цапли!'); 
-            if(!quest.done && quest.type==='dodge') { 
-                quest.progress++; 
-                checkQuest(); 
-            } 
-        } 
-        setTimeout(() => c.classList.remove('jump'), 300); 
-    } else if (a === 'croak') { 
-        c.classList.add('croak'); 
-        p.energy = Math.max(0, p.energy - 4); 
-        if (parasite.active) { 
-            parasite.active = false; 
-            document.getElementById('leechBug').style.opacity = '0'; 
-            log('Паразит уничтожен импульсом.'); 
-        } 
-        setTimeout(() => c.classList.remove('croak'), 300); 
-    } else if (a === 'sleep') { 
-        c.classList.add('sleep'); 
-        p.energy = Math.min(100, p.energy + 20); 
-        p.moisture = Math.min(100, p.moisture + 10); 
-        if (danger.active && danger.type==='pike') { 
-            danger.active = false; 
-            document.getElementById('pike').classList.remove('active'); 
-            document.getElementById('attackAlert').classList.remove('active'); 
-            log('Вы спрятались на дне от щуки.'); 
-            if(!quest.done && quest.type==='dodge') { 
-                quest.progress++; 
-                checkQuest(); 
-            } 
-        } 
-        if (Math.random()>0.8) { 
-            let item = Math.random()>0.5?'Целебная Тина':'Клевер'; 
-            if(inv[0]==='Пусто') inv[0]=item; 
-            else if(inv[1]==='Пусто') inv[1]=item; 
-            log(`🎣 На дне поймана вещь: ${item}!`); 
-        } 
-        setTimeout(() => c.classList.remove('sleep'), 300); 
-    } else if (a === 'loot') { 
-        if (slug.active && Math.abs(300 - slug.x) < 60) { 
-            slug.active = false; 
-            document.getElementById('slug').setAttribute('cx', -50); 
-            p.xp += 40; 
-            log('🎒 Ядовитый слизень собран! Получено +40 XP.'); 
-            checkLvl(); 
-        } else { 
-            log('Рядом нет объектов для сбора.'); 
-        } 
-    } 
-    renderInv(); 
-    update(); 
-} 
-
-function checkQuest() { 
-    if(quest.progress >= quest.target && !quest.done) { 
-        quest.done = true; 
-        p.points += 1; 
-        log('🏆 Квест выполнен! Получено +1 очко навыков.'); 
-        saveGame(); 
-        setTimeout(() => { 
-            let types = ['hunt', 'dodge']; 
-            quest = { 
-                type: types[Math.floor(Math.random()*types.length)], 
-                progress: 0, 
-                target: Math.floor(Math.random()*3)+2, 
-                done: false 
-            }; 
-            log(`🆕 Получен новый квест: ${quest.type==='hunt'?'Охота':'Уклонение'} (${quest.target} раз)`); 
-            saveGame(); 
-            update(); 
-        }, 2500); 
-    } 
-    if(quest.done) { 
-        document.getElementById('qText').innerText = 'Выполнен! +1 Очко'; 
-    } else { 
-        document.getElementById('qText').innerText = `${quest.type==='hunt'?'Поймать':'Уклониться'}: ${quest.progress}/${quest.target}`; 
-    } 
-} 
-
-function renderInv() {
-    document.getElementById('slot1').innerText = inv[0];
-    document.getElementById('slot2').innerText = inv[1];
-    document.getElementById('achievements').innerText = `Ачивки: ${ach}`;
-}
-
-function useItem(slot) {
-    if(inv[slot-1]==='Целебная Тина') {
-        p.energy = Math.min(100, p.energy+40);
-        inv[slot-1]='Пусто';
-        log('Использована тина: +40% Энергии.');
-    } else if(inv[slot-1]==='Клевер') {
-        p.moisture = Math.min(100, p.moisture+40);
-        inv[slot-1]='Пусто';
-        log('Использован клевер: +40% Влажности.');
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = canvasEl.getBoundingClientRect();
+        const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+        ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
+        drawnPoints++;
     }
-    renderInv();
-    saveGame();
-    update();
-}
 
-function checkLvl() {
-    if (p.xp >= 100) {
-        p.lvl++;
-        p.xp -= 100;
-        p.points++;
-        log(`✨ УРОВЕНЬ ${p.lvl}!`);
+    function checkRune() {
+        if (drawnPoints > 12) {
+            danger.active = false;
+            const t = document.getElementById('tentacle'); if(t) t.classList.remove('active');
+            document.getElementById('drawingOverlay').classList.remove('active');
+            document.getElementById('attackAlert').classList.remove('active');
+            ctx.clearRect(0, 0, 140, 140); drawnPoints = 0;
+            log('✨ Руна нарисована! Щит заблокировал атаку Кракен-щупальца босса.');
+            if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); }
+        }
     }
-    document.getElementById('lvl').innerText = p.lvl;
-    document.getElementById('xp').innerText = p.xp;
-    document.getElementById('statPoints').innerText = p.points;
-}
 
-function upgrade(s) {
-    if (p.points > 0) {
-        p.points--;
-        skills[s-1]++;
-        document.getElementById('skill'+s).innerText = skills[s-1];
-        log('Навык улучшен.');
+    function saveGame() {
+        localStorage.setItem('frogMegaRPG_save', JSON.stringify({ score: p.score, xp: p.xp, lvl: p.lvl, points: p.points, skills: skills, inv: inv, ach: ach, activeSkin: activeSkin, quest: quest }));
+    }
+
+    function loadGame() {
+        const local = localStorage.getItem('frogMegaRPG_save');
+        if (local) {
+            const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
+            skills = d.skills || [1, 1, 1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            log('Данные успешно извлечены из памяти браузера.');
+        }
+    }
+
+    function nextSkin() {
+        const skins = ['default', 'berserk', 'neon']; let idx = skins.indexOf(activeSkin); activeSkin = skins[(idx + 1) % skins.length];
+        document.getElementById('canvasContainer').className = 'canvas-container ' + activeSkin;
+        document.getElementById('svgFrog').className.baseValue = 'frog-body ' + activeSkin;
         saveGame();
     }
-}
+    function handleCanvasClick(e) {
+        if (!p.alive || lock || document.getElementById('drawingOverlay').classList.contains('active')) return;
+        lock = true; const canvas = document.getElementById('canvasContainer'); const r = canvas.getBoundingClientRect();
+        const cx = ((e.clientX - r.left) / r.width) * 600; const cy = ((e.clientY - r.top) / r.height) * 260;
+        canvas.classList.add('eat'); triggerRipple(300, 200);
+        document.getElementById('svgTongue').setAttribute('d', `M 300,160 Q ${150 + cx/2},${80 + cy/2} ${cx},${cy}`);
+        p.energy = Math.max(0, p.energy - 5);
+        
+        let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0);
+        let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
 
-function log(msg) {
-    const tl = document.getElementById('termLog');
-    if(tl) {
-        tl.innerHTML += `<br>> ${msg}`;
-        tl.scrollTop = tl.scrollHeight;
+        if (hit < hitRad) {
+            combo++; let isCrit = Math.random() > 0.85;
+            let gainXp = (target.type==='mosquito'?35:(target.type==='dragonfly'?60:(target.type==='fire'?80:20))) * (isCrit?2:1) * (1 + combo*0.1);
+            p.score++; p.hunger = Math.min(100, p.hunger + (target.type==='dragonfly'?40:25));
+            if(target.type==='fire') { berserkTime = 5; log('🔥 АКТИВИРОВАН РЕЖИМ БЕРСЕРКА!'); }
+            p.xp += Math.floor(gainXp); document.getElementById('score').innerText = p.score;
+            document.getElementById('combo').innerText = `🔥 x${combo}`;
+            log((isCrit?'🎯 КРИТ! ':'') + `Добыча съедена. Получено +${Math.floor(gainXp)} XP.`);
+            if(!quest.done && quest.type==='hunt') { quest.progress++; checkQuest(); }
+            if(p.score>=10 && ach<1) { ach++; log('🏆 ДОСТИЖЕНИЕ: Опытный охотник!'); }
+            document.getElementById('svgTarget').style.opacity = '0'; checkLvl(); saveGame();
+            setTimeout(spawnTarget, 400);
+        } else { combo = 0; document.getElementById('combo').innerText = ''; log('Промах языка по координатам.'); }
+        setTimeout(() => { canvas.classList.remove('eat'); document.getElementById('svgTongue').setAttribute('d', 'M 300,160 Q 300,160 300,160'); lock = false; update(); }, 300);
     }
-}
 
-function update() {
-    document.getElementById('lvl').innerText = p.lvl;
-    document.getElementById('xp').innerText = p.xp;
-    document.getElementById('statPoints').innerText = p.points;
-    checkQuest();
-    renderInv();
-    document.getElementById('vEnergy').innerText = p.energy + '%';
-    document.getElementById('bEnergy').style.width = p.energy + '%';
-    document.getElementById('vHunger').innerText = p.hunger + '%';
-    document.getElementById('bHunger').style.width = p.hunger + '%';
-    document.getElementById('vMoisture').innerText = p.moisture + '%';
-    document.getElementById('bMoisture').style.width = p.moisture + '%';
-    if((p.energy<=0 || p.hunger<=0 || p.moisture<=0) && p.alive) {
-        p.alive = false;
-        document.getElementById('endReason').innerText = 'Лягушка погибла от истощения!';
-        document.getElementById('endOverlay').classList.add('active');
+    function triggerRipple(x, y) { const r = document.getElementById('rip'); r.setAttribute('cx', x); r.setAttribute('cy', y); r.classList.add('active'); setTimeout(() => r.classList.remove('active'), 600); }
+
+    function spawnTarget() {
+        let r = Math.random();
+        if (r > 0.9) { target.type = 'fire'; document.getElementById('targetColor').setAttribute('fill', '#ff4500'); }
+        else if (r > 0.75) { target.type = 'dragonfly'; document.getElementById('targetColor').setAttribute('fill', '#d4af37'); }
+        else if (r > 0.45) { target.type = 'mosquito'; document.getElementById('targetColor').setAttribute('fill', '#9c3a3a'); }
+        else { target.type = 'fly'; document.getElementById('targetColor').setAttribute('fill', '#222222'); }
+        target.x = Math.random()*300+150; target.y = Math.random()*60+40; document.getElementById('svgTarget').style.opacity = '1';
     }
-}
+    function act(a) {
+        if (!p.alive) return; const c = document.getElementById('canvasContainer');
+        if (a === 'jump') {
+            c.classList.add('jump'); p.energy = Math.max(0, p.energy - 10); p.moisture = Math.max(0, p.moisture - 5);
+            if (danger.active && danger.type==='heron') { danger.active = false; document.getElementById('heron').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Успешный прыжок из зоны поражения цапли!'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
+            setTimeout(() => c.classList.remove('jump'), 300);
+        } else if (a === 'croak') {
+            c.classList.add('croak'); p.energy = Math.max(0, p.energy - 4);
+            if (parasite.active) { parasite.active = false; document.getElementById('leechBug').style.opacity = '0'; log('Паразит уничтожен импульсом.'); }
+            setTimeout(() => c.classList.remove('croak'), 300);
+        } else if (a === 'sleep') {
+            c.classList.add('sleep'); p.energy = Math.min(100, p.energy + 20); p.moisture = Math.min(100, p.moisture + 10);
+            if (danger.active && danger.type==='pike') { danger.active = false; document.getElementById('pike').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Вы спрятались на дне от щуки.'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
+            if (Math.random()>0.8) { 
+                let item = Math.random()>0.5?'Целебная Тина':'Клевер'; 
+                if(inv[0]==='Пусто') inv[0]=item; else if(inv[1]==='Пусто') inv[1]=item; 
+                log(`🎣 На дне поймана вещь: ${item}!`); 
+            }
+            setTimeout(() => c.classList.remove('sleep'), 300);
+        } else if (a === 'loot') {
+            if (slug.active && Math.abs(300 - slug.x) < 60) { slug.active = false; document.getElementById('slug').setAttribute('cx', -50); p.xp += 40; log('🎒 Ядовитый слизень собран! Получено +40 XP.'); checkLvl(); } else { log('Рядом нет объектов для сбора.'); }
+        }
+        renderInv(); update();
+    }
 
-function restart() {
-    p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-    skills =; // Исправлено: корректный сброс массива навыков
-    inv = ['Пусто','Пусто'];
-    document.getElementById('endOverlay').classList.remove('active');
-    spawnTarget();
-    update();
-}
+    function checkQuest() { 
+        if(quest.progress >= quest.target && !quest.done) {
+            quest.done = true; p.points += 1; log('🏆 Квест выполнен! Получено +1 очко навыков.'); saveGame();
+            setTimeout(() => {
+                let types = ['hunt', 'dodge'];
+                quest = { type: types[Math.floor(Math.random()*types.length)], progress: 0, target: Math.floor(Math.random()*3)+2, done: false };
+                log(`🆕 Получен новый квест: ${quest.type==='hunt'?'Охота':'Уклонение'} (${quest.target} раз)`);
+                saveGame(); update();
+            }, 2500);
+        }
+        if(quest.done) { document.getElementById('qText').innerText = 'Выполнен! +1 Очко'; } 
+        else { document.getElementById('qText').innerText = `${quest.type==='hunt'?'Поймать':'Уклониться'}: ${quest.progress}/${quest.target}`; } 
+    }
+    
+    function renderInv() { document.getElementById('slot1').innerText = inv[0]; document.getElementById('slot2').innerText = inv[1]; document.getElementById('achievements').innerText = `Ачивки: ${ach}`; }
+    
+    function useItem(slot) { 
+        if(inv[slot-1]==='Целебная Тина') { p.energy = Math.min(100, p.energy+40); inv[slot-1]='Пусто'; log('Использована тина: +40% Энергии.'); } 
+        else if(inv[slot-1]==='Клевер') { p.moisture = Math.min(100, p.moisture+40); inv[slot-1]='Пусто'; log('Использован клевер: +40% Влажности.'); }
+        renderInv(); saveGame(); update(); 
+    }
+    
+    function checkLvl() { if (p.xp >= 100) { p.lvl++; p.xp -= 100; p.points++; log(`✨ УРОВЕНЬ ${p.lvl}!`); } document.getElementById('lvl').innerText = p.lvl; document.getElementById('xp').innerText = p.xp; document.getElementById('statPoints').innerText = p.points; }
+    function upgrade(s) { if (p.points > 0) { p.points--; skills[s-1]++; document.getElementById('skill'+s).innerText = skills[s-1]; log('Навык улучшен.'); saveGame(); } }
+    
+    function log(msg) { const tl = document.getElementById('termLog'); if(tl) { tl.innerHTML += `<br>> ${msg}`; tl.scrollTop = tl.scrollHeight; } }
+    
+    function update() {
+        document.getElementById('lvl').innerText = p.lvl; document.getElementById('xp').innerText = p.xp; document.getElementById('statPoints').innerText = p.points;
+        checkQuest(); renderInv();
+        document.getElementById('vEnergy').innerText = p.energy + '%'; document.getElementById('bEnergy').style.width = p.energy + '%';
+        document.getElementById('vHunger').innerText = p.hunger + '%'; document.getElementById('bHunger').style.width = p.hunger + '%';
+        document.getElementById('vMoisture').innerText = p.moisture + '%'; document.getElementById('bMoisture').style.width = p.moisture + '%';
+        if((p.energy<=0 || p.hunger<=0 || p.moisture<=0) && p.alive) { p.alive = false; document.getElementById('endReason').innerText = 'Лягушка погибла от истощения!'; document.getElementById('endOverlay').classList.add('active'); }
+    }
+    
+    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; skills = [1, 1, 1]; inv = ['Пусто','Пусто']; document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); update(); }
+    function clearSave() { localStorage.removeItem('frogMegaRPG_save'); log('Сохранения стерты.'); restart(); }
+    // Таймер движения целей и направления взгляда глаз лягушки
+    setInterval(() => {
+        if (!p.alive || lock) return; let speedMod = target.type === 'mosquito' ? 1.7 : (target.type === 'dragonfly' ? 2.2 : 1.0);
+        if (berserkTime > 0) speedMod *= 0.4;
+        target.x += target.vx * speedMod; target.y += target.vy * speedMod + Math.sin(ticks) * 1.5;
+        if (target.x < 40 || target.x > 550) target.vx *= -1; if (target.y < 25 || target.y > 135) target.vy *= -1;
+        document.getElementById('svgTarget').setAttribute('transform', `translate(${target.x}, ${target.y})`);
+        const dx = target.x > 300 ? 1.5 : -1.5; const dy = target.y > 140 ? 1.5 : -1.5;
+        const pL = document.getElementById('pupilL'); const pR = document.getElementById('pupilR');
+        if(pL && pR) { pL.style.transform = `translate(${dx}px, ${dy}px)`; pR.style.transform = `translate(${dx}px, ${dy}px)`; }
+    }, 30);
 
-function clearSave() {
-    localStorage.removeItem('frogMegaRPG_save');
-    log('Сохранения стерты.');
-    restart();
-}
+    // Главный игровой таймер биома и случайных хищников
+    setInterval(() => {
+        if (!p.alive) return; ticks++; if(berserkTime>0) berserkTime--;
+        
+        p.hunger = Math.max(0, p.hunger - 3); 
+        p.energy = Math.max(0, p.energy - 2); 
+        p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills[1]))); 
+        
+        if (ticks % 15 === 0) {
+            let mode = ticks % 45 === 0 ? 'storm' : (ticks % 30 >= 15 ? 'night' : 'day');
+            document.getElementById('envTime').innerText = mode==='storm'?'Гроза':(mode==='night'?'Ночь':'День');
+            document.getElementById('canvasContainer').className = 'canvas-container ' + mode + ' ' + activeSkin;
+            if(mode==='storm') { p.moisture = 100; document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); }
+        }
+        
+        if (Math.random()>0.7 && !slug.active) { slug.active = true; slug.x = 240; document.getElementById('slug').setAttribute('cx', slug.x); }
+        if (!parasite.active && Math.random() > 0.9) { parasite.active = true; document.getElementById('leechBug').style.opacity = '1'; log('🪱 На вас напал паразит! Срочно [КВАКАЙТЕ], чтобы сбросить его!'); }
+        
+        if (!danger.active && Math.random() > 0.7 && ticks > 3) {
+            danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
+            const el = document.getElementById(danger.type); if(el) el.classList.add('active');
+            
+            const alertBox = document.getElementById('attackAlert');
+            alertBox.classList.add('active');
+            if (danger.type === 'tentacle') { alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
+            else if (danger.type === 'heron') { alertBox.innerText = '⚠️ ЦАПЛЯ! ЖМИ ПРЫЖОК!'; log('⚠️ ЦАПЛЯ! Жми ПРЫЖОК!'); }
+            else { alertBox.innerText = '⚠️ ЩУКА НА ДНЕ! СТОЙ (РЫБАЛКА)!'; log('⚠️ ЩУКА! Затаись на дне через Рыбалку!'); }
+            
+            setTimeout(() => {
+                if(danger.active && danger.type !== 'none') {
+                    p.energy = Math.max(0, p.energy - 40);
+                    log(`💥 Вы получили урон от: ${danger.type === 'tentacle'?'Кракена':(danger.type==='heron'?'Цапли':'Щуки')}! -40% Энергии.`);
+                    danger.active = false;
+                    if(el) el.classList.remove('active');
+                    alertBox.classList.remove('active');
+                    document.getElementById('drawingOverlay').classList.remove('active');
+                    update();
+                }
+            }, 2500);
+        }
+        update();
+    }, 1000);
 
+    window.onload = () => { loadGame(); spawnTarget(); update(); };
