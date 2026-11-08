@@ -187,7 +187,7 @@
         const local = localStorage.getItem('frogMegaRPG_save');
         if (local) {
             const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
-            skills = d.skills||; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            skills = d.skills||[1,1,1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
             log('Данные успешно извлечены из памяти браузера.');
         }
     }
@@ -205,7 +205,7 @@
         canvas.classList.add('eat'); triggerRipple(300, 200);
         document.getElementById('svgTongue').setAttribute('d', `M 300,160 Q ${150 + cx/2},${80 + cy/2} ${cx},${cy}`);
         p.energy = Math.max(0, p.energy - 5);
-        let hitRad = 16 + (skills * 6) + (berserkTime > 0 ? 40 : 0);
+        let hitRad = 16 + (skills[0] * 6) + (berserkTime > 0 ? 40 : 0);
         let hit = Math.sqrt(Math.pow(cx - target.x, 2) + Math.pow(cy - target.y, 2));
         if (hit < hitRad) {
             combo++; let isCrit = Math.random() > 0.85;
@@ -269,7 +269,7 @@
 
     setInterval(() => {
         if (!p.alive) return; ticks++; if(berserkTime>0) berserkTime--;
-        p.hunger = Math.max(0, p.hunger - 3); p.energy = Math.max(0, p.energy - 2); p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills)));
+        p.hunger = Math.max(0, p.hunger - 3); p.energy = Math.max(0, p.energy - 2); p.moisture = Math.max(0, p.moisture - Math.max(1, (4 - skills[1])));
         if (ticks % 15 === 0) {
             let mode = ticks % 45 === 0 ? 'storm' : (ticks % 30 >= 15 ? 'night' : 'day');
             document.getElementById('envTime').innerText = mode==='storm'?'Гроза':(mode==='night'?'Ночь':'День');
@@ -281,27 +281,76 @@
         if (!danger.active && Math.random() > 0.7 && ticks > 3) {
             danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
             const el = document.getElementById(danger.type); if(el) el.classList.add('active');
-            
             const alertBox = document.getElementById('attackAlert');
             if (danger.type === 'tentacle') { alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
             else if (danger.type === 'heron') { alertBox.innerText = '⚠️ ЦАПЛЯ! ЖМИ ПРЫЖОК!'; log('⚠️ ЦАПЛЯ! Жми ПРЫЖОК!'); }
             else { alertBox.innerText = '⚠️ ЩУКА НА ДНЕ! СТОЙ (РЫБАЛКА)!'; log('⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); }
             alertBox.classList.add('active');
-
-            setTimeout(() => { if (danger.active) { p.alive = false; document.getElementById('attackAlert').classList.remove('active'); end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills * 300));
+            
+            setTimeout(() => { 
+                if (danger.active) { 
+                    p.alive = false; 
+                    document.getElementById('attackAlert').classList.remove('active'); 
+                    end(`Вас уничтожил враг: ${danger.type}`); 
+                } 
+            }, 2000 + (skills[1] * 300));
         }
         update();
     }, 2000);
+
     function update() {
-        document.getElementById('vEnergy').innerText = p.energy + '%'; document.getElementById('vHunger').innerText = p.hunger + '%'; document.getElementById('vMoisture').innerText = p.moisture + '%';
-        b('bEnergy', p.energy); b('bHunger', p.hunger); b('bMoisture', p.moisture);
-        if (p.energy <= 0 || p.hunger <= 0 || p.moisture <= 0) { document.getElementById('attackAlert').classList.remove('active'); end('Организм погиб.'); }
+        document.getElementById('vEnergy').innerText = p.energy + '%'; 
+        document.getElementById('vHunger').innerText = p.hunger + '%'; 
+        document.getElementById('vMoisture').innerText = p.moisture + '%';
+        b('bEnergy', p.energy); 
+        b('bHunger', p.hunger); 
+        b('bMoisture', p.moisture);
+        if (p.energy <= 0 || p.hunger <= 0 || p.moisture <= 0) { 
+            document.getElementById('attackAlert').classList.remove('active'); 
+            end('Организм погиб.'); 
+        }
     }
-    function b(id, val) { const f = document.getElementById(id); f.style.width = val + '%'; f.className = 'progress-bar-fill'; if (val <= 20) f.classList.add('crit'); else if (val <= 50) f.classList.add('warn'); }
-    function log(m) { const l = document.getElementById('termLog'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
-    function end(r) { p.alive = false; document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Lvl: ${p.lvl}`; document.getElementById('endOverlay').classList.add('active'); }
-    function clearSave() { localStorage.removeItem('frogMegaRPG_save'); restart(); }
-    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; document.getElementById('attackAlert').classList.remove('active'); loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); for (let i = 1; i <= 3; i++) { document.getElementById('skill' + i).innerText = skills[i - 1]; } update(); }
+
+    function b(id, val) { 
+        const f = document.getElementById(id); 
+        f.style.width = val + '%'; 
+        f.className = 'progress-bar-fill'; 
+        if (val <= 20) f.classList.add('crit'); 
+        else if (val <= 50) f.classList.add('warn'); 
+    }
+
+    function log(m) { 
+        const l = document.getElementById('termLog'); 
+        l.innerHTML = `> ${m}<br>` + l.innerHTML; 
+    }
+
+    function end(r) { 
+        p.alive = false; 
+        document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Lvl: ${p.lvl}`; 
+        document.getElementById('endOverlay').classList.add('active'); 
+    }
+
+    function clearSave() { 
+        localStorage.removeItem('frogMegaRPG_save'); 
+        restart(); 
+    }
+
+    function restart() { 
+        p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; 
+        danger.active = false; 
+        parasite.active = false; 
+        document.getElementById('attackAlert').classList.remove('active'); 
+        loadGame(); 
+        document.getElementById('endOverlay').classList.remove('active'); 
+        spawnTarget(); 
+        checkQuest(); 
+        renderInv(); 
+        for (let i = 1; i <= 3; i++) { 
+            document.getElementById('skill' + i).innerText = skills[i - 1]; 
+        } 
+        update(); 
+    }
+    
     restart();
 </script>
 </body>
