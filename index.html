@@ -69,7 +69,15 @@
         button.action { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-dark); padding: 6px; font-size: 11px; font-weight: 500; border-radius: 6px; cursor: pointer; font-family: var(--font); }
         button.action:hover:not(:disabled) { background: var(--claude-green-light); color: var(--claude-green); }
         button.action:disabled { opacity: 0.3; cursor: not-allowed; }
-        .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--text-gray); height: 44px; overflow-y: auto; line-height: 1.3; }
+        
+        /* Увеличенная высота лога событий */
+        .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--text-gray); height: 90px; overflow-y: auto; line-height: 1.4; }
+        
+        /* Стили всплывающего предупреждения об атаках */
+        .attack-alert { position: absolute; top: 15px; right: 15px; padding: 6px 12px; background: rgba(196, 83, 41, 0.95); border: 1px solid var(--accent-orange); color: white; font-size: 11px; font-weight: bold; border-radius: 4px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 8; animation: pulseAlert 1s infinite alternate; }
+        .attack-alert.active { opacity: 1; }
+        @keyframes pulseAlert { from { transform: scale(1); } to { transform: scale(1.05); } }
+
         .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(244, 241, 234, 0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10; }
         .overlay.active { opacity: 1; pointer-events: auto; }
         .overlay-title { font-size: 13px; font-weight: 600; text-align: center; }
@@ -99,6 +107,9 @@
         <div style="margin-left:auto; font-size:10px; color:var(--text-gray);" id="achievements">Ачивки: 0</div>
     </div>
     <div class="canvas-container" id="canvasContainer" onclick="handleCanvasClick(event)">
+        <!-- Текстовое предупреждение на экране -->
+        <div class="attack-alert" id="attackAlert">⚠️ ВНИМАНИЕ: ОБНАРУЖЕНА УГРОЗА!</div>
+
         <div class="drawing-overlay" id="drawingOverlay">
             <div style="font-size:9px; text-align:center; color:var(--accent-orange); font-weight:600;">ЧЕРТИ КРУГ ТУТ!</div>
             <canvas class="drawing-canvas" id="runicCanvas"></canvas>
@@ -151,7 +162,7 @@
 </div>
 <script>
     let p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 };
-    let skills = [1, 1, 1]; let inv = ['Пусто', 'Пусто']; let ach = 0; let activeSkin = 'default';
+    let skills =; let inv = ['Пусто', 'Пусто']; let ach = 0; let activeSkin = 'default';
     let target = { x: 400, y: 70, type: 'fly', vx: 2, vy: 1 };
     let slug = { x: -50, active: false }; let danger = { type: 'none', active: false };
     let parasite = { active: false }; let quest = { type: 'hunt', progress: 0, target: 3, done: false };
@@ -173,6 +184,7 @@
         if (drawnPoints > 12) {
             danger.active = false; const t = document.getElementById('tentacle'); if(t) t.classList.remove('active');
             document.getElementById('drawingOverlay').classList.remove('active'); ctx.clearRect(0, 0, 140, 140); drawnPoints = 0;
+            document.getElementById('attackAlert').classList.remove('active');
             log('✨ Руна нарисована! Щит заблокировал атаку Кракен-щупальца босса.');
             if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); }
         }
@@ -231,7 +243,7 @@
         if (!p.alive) return; const c = document.getElementById('canvasContainer');
         if (a === 'jump') {
             c.classList.add('jump'); p.energy = Math.max(0, p.energy - 10); p.moisture = Math.max(0, p.moisture - 5);
-            if (danger.active && danger.type==='heron') { danger.active = false; document.getElementById('heron').classList.remove('active'); log('Успешный прыжок из зоны поражения цапли!'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
+            if (danger.active && danger.type==='heron') { danger.active = false; document.getElementById('heron').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Успешный прыжок из зоны поражения цапли!'); if(!quest.done && quest.type==='dodge') { quest.progress++; checkQuest(); } }
             setTimeout(() => c.classList.remove('jump'), 300);
         } else if (a === 'croak') {
             c.classList.add('croak'); p.energy = Math.max(0, p.energy - 4);
@@ -239,7 +251,7 @@
             setTimeout(() => c.classList.remove('croak'), 300);
         } else if (a === 'sleep') {
             c.classList.add('sleep'); p.energy = Math.min(100, p.energy + 20); p.moisture = Math.min(100, p.moisture + 10);
-            if (danger.active && danger.type==='pike') { danger.active = false; document.getElementById('pike').classList.remove('active'); log('Вы спрятались на дне от щуки.'); }
+            if (danger.active && danger.type==='pike') { danger.active = false; document.getElementById('pike').classList.remove('active'); document.getElementById('attackAlert').classList.remove('active'); log('Вы спрятались на дне от щуки.'); }
             if (Math.random()>0.8) { let item = Math.random()>0.5?'Целебная Тина':'Клевер'; if(inv[0]==='Пусто') inv[0]=item; else if(inv[1]==='Пусто') inv[1]=item; log(`🎣 На дне поймана вещь: ${item}!`); renderInv(); }
             setTimeout(() => c.classList.remove('sleep'), 300);
         } else if (a === 'loot') {
@@ -277,22 +289,28 @@
         if (!danger.active && Math.random() > 0.7 && ticks > 3) {
             danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
             const el = document.getElementById(danger.type); if(el) el.classList.add('active');
-            if(danger.type=='tentacle') { document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
-            else { log(danger.type==='heron'?'⚠️ ЦАПЛЯ! Жми ПРЫЖОК!':'⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); }
-            setTimeout(() => { if (danger.active) { p.alive = false; end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills[2] * 300));
+            
+            // Настройка экранного текстового предупреждения
+            const alertBox = document.getElementById('attackAlert');
+            if (danger.type === 'tentacle') { alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
+            else if (danger.type === 'heron') { alertBox.innerText = '⚠️ ЦАПЛЯ! ЖМИ ПРЫЖОК!'; log('⚠️ ЦАПЛЯ! Жми ПРЫЖОК!'); }
+            else { alertBox.innerText = '⚠️ ЩУКА НА ДНЕ! СТОЙ (РЫБАЛКА)!'; log('⚠️ ЩУКА! Затаись (РЫБАЛКА)!'); }
+            alertBox.classList.add('active');
+
+            setTimeout(() => { if (danger.active) { p.alive = false; document.getElementById('attackAlert').classList.remove('active'); end(`Вас уничтожил враг: ${danger.type}`); } }, 2000 + (skills[2] * 300));
         }
         update();
     }, 2000);
     function update() {
         document.getElementById('vEnergy').innerText = p.energy + '%'; document.getElementById('vHunger').innerText = p.hunger + '%'; document.getElementById('vMoisture').innerText = p.moisture + '%';
         b('bEnergy', p.energy); b('bHunger', p.hunger); b('bMoisture', p.moisture);
-        if (p.energy <= 0 || p.hunger <= 0 || p.moisture <= 0) end('Организм погиб.');
+        if (p.energy <= 0 || p.hunger <= 0 || p.moisture <= 0) { document.getElementById('attackAlert').classList.remove('active'); end('Организм погиб.'); }
     }
     function b(id, val) { const f = document.getElementById(id); f.style.width = val + '%'; f.className = 'progress-bar-fill'; if (val <= 20) f.classList.add('crit'); else if (val <= 50) f.classList.add('warn'); }
     function log(m) { const l = document.getElementById('termLog'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
     function end(r) { p.alive = false; document.getElementById('endReason').innerText = r + ` Счет: ${p.score}. Lvl: ${p.lvl}`; document.getElementById('endOverlay').classList.add('active'); }
     function clearSave() { localStorage.removeItem('frogMegaRPG_save'); restart(); }
-    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); update(); }
+    function restart() { p = { energy: 100, hunger: 100, moisture: 100, alive: true, score: 0, xp: 0, lvl: 1, points: 0 }; danger.active = false; parasite.active = false; document.getElementById('attackAlert').classList.remove('active'); loadGame(); document.getElementById('endOverlay').classList.remove('active'); spawnTarget(); checkQuest(); renderInv(); update(); }
     restart();
 </script>
 </body>
