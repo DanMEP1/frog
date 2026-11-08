@@ -70,10 +70,8 @@
         button.action:hover:not(:disabled) { background: var(--claude-green-light); color: var(--claude-green); }
         button.action:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        /* Увеличенная высота лога событий */
         .terminal-log { background: #faf9f5; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--text-gray); height: 90px; overflow-y: auto; line-height: 1.4; }
         
-        /* Стили всплывающего предупреждения об атаках */
         .attack-alert { position: absolute; top: 15px; right: 15px; padding: 6px 12px; background: rgba(196, 83, 41, 0.95); border: 1px solid var(--accent-orange); color: white; font-size: 11px; font-weight: bold; border-radius: 4px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 8; animation: pulseAlert 1s infinite alternate; }
         .attack-alert.active { opacity: 1; }
         @keyframes pulseAlert { from { transform: scale(1); } to { transform: scale(1.05); } }
@@ -107,7 +105,6 @@
         <div style="margin-left:auto; font-size:10px; color:var(--text-gray);" id="achievements">Ачивки: 0</div>
     </div>
     <div class="canvas-container" id="canvasContainer" onclick="handleCanvasClick(event)">
-        <!-- Текстовое предупреждение на экране -->
         <div class="attack-alert" id="attackAlert">⚠️ ВНИМАНИЕ: ОБНАРУЖЕНА УГРОЗА!</div>
 
         <div class="drawing-overlay" id="drawingOverlay">
@@ -194,7 +191,7 @@
         const local = localStorage.getItem('frogMegaRPG_save');
         if (local) {
             const d = JSON.parse(local); p.score = d.score||0; p.xp = d.xp||0; p.lvl = d.lvl||1; p.points = d.points||0;
-            skills = d.skills||[1, 1, 1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
+            skills = d.skills||[1,1,1]; inv = d.inv||['Пусто','Пусто']; ach = d.ach||0; activeSkin = d.activeSkin||'default'; quest = d.quest||quest;
             log('Данные успешно извлечены из памяти браузера.');
         }
     }
@@ -290,7 +287,6 @@
             danger.active = true; let r = Math.random(); danger.type = r > 0.66 ? 'heron' : (r > 0.33 ? 'pike' : 'tentacle');
             const el = document.getElementById(danger.type); if(el) el.classList.add('active');
             
-            // Настройка экранного текстового предупреждения
             const alertBox = document.getElementById('attackAlert');
             if (danger.type === 'tentacle') { alertBox.innerText = '🐙 КРАКЕН АТАКУЕТ! ЧЕРТИ РУНУ!'; document.getElementById('drawingOverlay').classList.add('active'); document.getElementById('canvasContainer').classList.add('shake'); setTimeout(() => document.getElementById('canvasContainer').classList.remove('shake'), 400); log('🐙 КРАКЕН АТАКУЕТ! Быстро зарисуйте руну на холсте слева!'); }
             else if (danger.type === 'heron') { alertBox.innerText = '⚠️ ЦАПЛЯ! ЖМИ ПРЫЖОК!'; log('⚠️ ЦАПЛЯ! Жми ПРЫЖОК!'); }
